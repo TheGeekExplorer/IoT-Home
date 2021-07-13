@@ -1,7 +1,9 @@
 # IoT-Home
 IoT Suite for a Smart Home consisting of ESP32-WROOM, Arduino Nano/Uno/Mega, and Raspberry Pi
 
-## Overview
+----
+
+## ROOMS - STAIRS LED LIGHTING
 
 #### Construction and Materials
 
@@ -15,7 +17,7 @@ The lighting on the stairs can be turned on for a given time (default 60 seconds
 
 The ESP32 is also setup to connect to the local wifi (with credentials) and then host a set of simple REST API to turn on and off the lighting.  There is also scope to make this work with RGB LED lighting for multicoloured solutions, and MOSFETS with PWM for nice glow lighting.
 
----
+----
 
 ## SENSORS - Temperature Sensor
 

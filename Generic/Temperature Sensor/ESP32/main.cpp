@@ -5,8 +5,8 @@
 
 // Constants
 #define HOSTNAME "X-SENSOR"
-#define SSIDNAME ""
-#define SSIDPASS ""
+#define SSIDNAME "PLUSNET-QT8H"
+#define SSIDPASS "4c528723e8"
 #define APIUSER "x-smart"
 #define APIPASS "fdTE%G54m2dY!g78"
 Adafruit_BMP085 bmp;
@@ -147,6 +147,9 @@ void handleRoute_dashboard() {
   strcat(msg, "      <p>");
   strcat(msg, "        <a href='/api/temperature'>/api/temperature</a><br>");
   strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
+  strcat(msg, "      </p>");
+  strcat(msg, "      <p>");
+  strcat(msg, "        <a href='/'>[X] Logout</a><br>");
   strcat(msg, "      </p>");
   strcat(msg, "    </main>");
   strcat(msg, "  </body>");

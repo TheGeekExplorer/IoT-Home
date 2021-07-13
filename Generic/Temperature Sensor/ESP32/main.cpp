@@ -28,11 +28,7 @@ void setup() {
   WiFi.disconnect();
   delay(100);
   WiFi.setHostname(HOSTNAME);
-  WiFi.setHostname(HOSTNAME);
-  WiFi.setHostname(HOSTNAME);
   WiFi.begin(SSIDNAME, SSIDPASS);
-  WiFi.setHostname(HOSTNAME);
-  WiFi.setHostname(HOSTNAME);
   WiFi.setHostname(HOSTNAME);
   
   // Wait until connected
@@ -81,28 +77,17 @@ void loop() {
  * ROUTE - "/"
  */
 void handleRoute_root() {
-  Serial.println("API Initiated -- Login URL View!");
-
-  // Set no cahcing headers
   setHeaders_NoCache();
   setHeaders_CrossOrigin();
   
-  char msg[5000];
+  char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body {\r\n");
-  strcat(msg, "        background-color:#555;\r\n");
-  strcat(msg, "        font-size:16px;\r\n");
-  strcat(msg, "        color:#444;\r\n");
-  strcat(msg, "        font-family: Serif;\r\n");
-  strcat(msg, "        box-sizing: border-box;\r\n");
-  strcat(msg, "      }\r\n");
+  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Serif; box-sizing: border-box; }\r\n");
   strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; box-shadow:0 0 10px #333; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h2    { font-size:20px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h3    { font-size:18px; font-weight:bold;   }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
   strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
@@ -110,18 +95,16 @@ void handleRoute_root() {
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
-  strcat(msg, "      <section>");
-  strcat(msg, "        <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
-  strcat(msg, "        <p>");
-  strcat(msg, "          <form action=\"/dashboard/\" method=\"POST\">");
-  strcat(msg, "            <p>Username</p>");
-  strcat(msg, "            <input type=\"text\" name=\"username\"><br>");
-  strcat(msg, "            <p>Password</p>");
-  strcat(msg, "            <input type=\"password\" name=\"password\"><br><br>");
-  strcat(msg, "            <input type=\"submit\" value=\"Login!\"><br>");
-  strcat(msg, "          </form>");
-  strcat(msg, "        </p>");
-  strcat(msg, "      </section>");
+  strcat(msg, "      <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
+  strcat(msg, "      <p>");
+  strcat(msg, "        <form action=\"/dashboard/\" method=\"POST\">");
+  strcat(msg, "          <p>Username</p>");
+  strcat(msg, "          <input type=\"text\" name=\"username\"><br>");
+  strcat(msg, "          <p>Password</p>");
+  strcat(msg, "          <input type=\"password\" name=\"password\"><br><br>");
+  strcat(msg, "          <input type=\"submit\" value=\"Login!\"><br>");
+  strcat(msg, "        </form>");
+  strcat(msg, "      </p>");
   strcat(msg, "    </main>");
   strcat(msg, "  </body>");
   strcat(msg, "</html>");
@@ -134,9 +117,6 @@ void handleRoute_root() {
  * ROUTE - "/dashboard/"
  */
 void handleRoute_dashboard() {
-  Serial.println("API Initiated -- Dashboard URL View!");
-
-  // Set no cahcing headers
   setHeaders_NoCache();
   setHeaders_CrossOrigin();
 
@@ -149,22 +129,14 @@ void handleRoute_dashboard() {
   }
 
   // Else Carry on...
-  char msg[5000];
+  char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body {\r\n");
-  strcat(msg, "        background-color:#555;\r\n");
-  strcat(msg, "        font-size:16px;\r\n");
-  strcat(msg, "        color:#fff;\r\n");
-  strcat(msg, "        font-family: Serif;\r\n");
-  strcat(msg, "        box-sizing: border-box;\r\n");
-  strcat(msg, "      }\r\n");
-  strcat(msg, "      main  { margin:50px 50px;                   }\r\n");
+  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Serif; box-sizing: border-box; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; box-shadow:0 0 10px #333; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h2    { font-size:20px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h3    { font-size:18px; font-weight:bold;   }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
   strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
@@ -172,14 +144,12 @@ void handleRoute_dashboard() {
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
-  strcat(msg, "      <section>");
-  strcat(msg, "        <h1>DASHBOARD<h1>");
-  strcat(msg, "        <p>");
-  strcat(msg, "          <a href='/api/temperature'>/api/temperature</a><br>");
-  strcat(msg, "          <a href='/api/pressure'>/api/pressure</a><br>");
-  strcat(msg, "          <a href='/api/altitude'>/api/altitude</a><br>");
-  strcat(msg, "        </p>");
-  strcat(msg, "      </section>");
+  strcat(msg, "      <h1>DASHBOARD<h1>");
+  strcat(msg, "      <p>");
+  strcat(msg, "        <a href='/api/temperature'>/api/temperature</a><br>");
+  strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
+  strcat(msg, "        <a href='/api/altitude'>/api/altitude</a><br>");
+  strcat(msg, "      </p>");
   strcat(msg, "    </main>");
   strcat(msg, "  </body>");
   strcat(msg, "</html>");
@@ -193,9 +163,6 @@ void handleRoute_dashboard() {
  * ROUTE - "/api/temperature"
  */
 void handleRoute_temperature() {
-  Serial.println("API Initiated -- Temperature Reading!");
-
-  // Set no cahcing headers
   setHeaders_NoCache();
   setHeaders_CrossOrigin();
   
@@ -234,9 +201,6 @@ void handleRoute_temperature() {
  * ROUTE - "/api/altitude"
  */
 void handleRoute_altitude() {
-  Serial.println("API Initiated -- Altitude Reading!");
-
-  // Set no cahcing headers
   setHeaders_NoCache();
   setHeaders_CrossOrigin();
   
@@ -250,7 +214,7 @@ void handleRoute_altitude() {
   for (int i=0; i<40; i++) {
     count = i;
     r = bmp.readAltitude();
-    if (r > -20 && r < 40)
+    if (r > 0 && r < 2000)
       break;
     delay(50);
   }
@@ -275,9 +239,6 @@ void handleRoute_altitude() {
  * ROUTE - "/api/pressure"
  */
 void handleRoute_pressure() {
-  Serial.println("API Initiated -- Pressure Reading!");
-
-  // Set no cahcing headers
   setHeaders_NoCache();
   setHeaders_CrossOrigin();
   
@@ -291,7 +252,7 @@ void handleRoute_pressure() {
   for (int i=0; i<40; i++) {
     count = i;
     r = bmp.readPressure();
-    if (r > -20 && r < 40)
+    if (r > 850 && r < 120000)
       break;
     delay(50);
   }
@@ -310,7 +271,6 @@ void handleRoute_pressure() {
   // Send to client
   server.send(200, "application/json", msg);
 }
-
 
 
 void setHeaders_NoCache(){

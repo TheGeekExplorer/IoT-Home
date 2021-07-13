@@ -55,7 +55,6 @@ void setup() {
   
   // Setup web server
   server.on("/",                HTTP_GET,  handleRoute_root);
-  server.on("/login/",          HTTP_GET,  handleRoute_login);
   server.on("/dashboard/",      HTTP_POST, handleRoute_dashboard);
   server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
   server.on("/api/altitude",    HTTP_GET,  handleRoute_altitude);
@@ -71,65 +70,17 @@ void setup() {
 }
 
 
+
 void loop() {
   server.handleClient();
 }
+
 
 
 /**
  * ROUTE - "/"
  */
 void handleRoute_root() {
-  Serial.println("API Initiated -- Root URL View!");
-
-  // Set no cahcing headers
-  setHeaders_NoCache();
-  setHeaders_CrossOrigin();
-  
-  char msg[5000];
-  strcpy(msg, "<html>\r\n");
-  strcat(msg, "  <head>\r\n");
-  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
-  strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body {\r\n");
-  strcat(msg, "        background-color:#555;\r\n");
-  strcat(msg, "        font-size:16px;\r\n");
-  strcat(msg, "        color:#fff;\r\n");
-  strcat(msg, "        font-family: Serif;\r\n");
-  strcat(msg, "        box-sizing: border-box;\r\n");
-  strcat(msg, "      }\r\n");
-  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
-  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
-  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
-  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
-  strcat(msg, "    </style>\r\n");
-  strcat(msg, "  </head>\r\n");
-  strcat(msg, "  <body>\r\n");
-  strcat(msg, "    <main>\r\n");
-  strcat(msg, "      <section>\r\n");
-  strcat(msg, "        <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SESNOR</h1>\r\n");
-  strcat(msg, "        <p>\r\n");
-  strcat(msg, "          Welcome to the IoT Home ESP32-WROOM sensor. Access data using the /api/ urls.\r\n");
-  strcat(msg, "        </p>\r\n");
-  strcat(msg, "        <p>\r\n");
-  strcat(msg, "          <a href='/login/'>Login to Dashboard</a><br>\r\n");
-  strcat(msg, "        </p>\r\n");
-  strcat(msg, "      </section>\r\n");
-  strcat(msg, "    </main>\r\n");
-  strcat(msg, "  </body>\r\n");
-  strcat(msg, "</html>\r\n");
-  
-  server.send(200, "text/html", msg);
-}
-
-
-/**
- * ROUTE - "/"
- */
-void handleRoute_login() {
   Serial.println("API Initiated -- Login URL View!");
 
   // Set no cahcing headers
@@ -144,29 +95,29 @@ void handleRoute_login() {
   strcat(msg, "      body {\r\n");
   strcat(msg, "        background-color:#555;\r\n");
   strcat(msg, "        font-size:16px;\r\n");
-  strcat(msg, "        color:#fff;\r\n");
+  strcat(msg, "        color:#444;\r\n");
   strcat(msg, "        font-family: Serif;\r\n");
   strcat(msg, "        box-sizing: border-box;\r\n");
   strcat(msg, "      }\r\n");
-  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
-  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
-  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
-  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; box-shadow:0 0 10px #333; }\r\n");
+  strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h2    { font-size:20px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h3    { font-size:18px; font-weight:bold;   }\r\n");
+  strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
+  strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
   strcat(msg, "      <section>");
-  strcat(msg, "        <h1>Login to IoT Home Sensor<h1>");
+  strcat(msg, "        <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
   strcat(msg, "        <p>");
   strcat(msg, "          <form action=\"/dashboard/\" method=\"POST\">");
   strcat(msg, "            <p>Username</p>");
   strcat(msg, "            <input type=\"text\" name=\"username\"><br>");
   strcat(msg, "            <p>Password</p>");
-  strcat(msg, "            <input type=\"password\" name=\"password\"><br>");
+  strcat(msg, "            <input type=\"password\" name=\"password\"><br><br>");
   strcat(msg, "            <input type=\"submit\" value=\"Login!\"><br>");
   strcat(msg, "          </form>");
   strcat(msg, "        </p>");
@@ -193,7 +144,7 @@ void handleRoute_dashboard() {
   String username = server.arg("username");
   String password = server.arg("password");
   if (username != APIUSER || password != APIPASS) {
-    server.sendHeader(F("Location"), F("/login/"));
+    server.sendHeader(F("Location"), F("/"));
     server.send(401, "text/html", "Not Authorised.");
   }
 
@@ -210,19 +161,19 @@ void handleRoute_dashboard() {
   strcat(msg, "        font-family: Serif;\r\n");
   strcat(msg, "        box-sizing: border-box;\r\n");
   strcat(msg, "      }\r\n");
-  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
-  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
-  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
-  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
-  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
+  strcat(msg, "      main  { margin:50px 50px;                   }\r\n");
+  strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h2    { font-size:20px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h3    { font-size:18px; font-weight:bold;   }\r\n");
+  strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
+  strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
   strcat(msg, "      <section>");
-  strcat(msg, "        <h1>Dashboard<h1>");
+  strcat(msg, "        <h1>DASHBOARD<h1>");
   strcat(msg, "        <p>");
   strcat(msg, "          <a href='/api/temperature'>/api/temperature</a><br>");
   strcat(msg, "          <a href='/api/pressure'>/api/pressure</a><br>");
@@ -235,6 +186,7 @@ void handleRoute_dashboard() {
   
   server.send(200, "text/html", msg);
 }
+
 
 
 /**
@@ -358,6 +310,7 @@ void handleRoute_pressure() {
   // Send to client
   server.send(200, "application/json", msg);
 }
+
 
 
 void setHeaders_NoCache(){

@@ -16,7 +16,6 @@ WebServer server(80);
 String header;
 
 
-
 void setup() {
 
   // Setup SERIAL
@@ -72,11 +71,9 @@ void setup() {
 }
 
 
-
 void loop() {
   server.handleClient();
 }
-
 
 
 /**
@@ -240,7 +237,6 @@ void handleRoute_dashboard() {
 }
 
 
-
 /**
  * ROUTE - "/api/temperature"
  */
@@ -362,7 +358,6 @@ void handleRoute_pressure() {
   // Send to client
   server.send(200, "application/json", msg);
 }
-
 
 
 void setHeaders_NoCache(){

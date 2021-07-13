@@ -3,7 +3,7 @@ IoT Suite for a Smart Home consisting of ESP32-WROOM, Arduino Nano/Uno/Mega, and
 
 ----
 
-## ROOMS - STAIRS LED LIGHTING
+## ROOMS - Stairs LED Lighting
 
 #### Construction and Materials
 

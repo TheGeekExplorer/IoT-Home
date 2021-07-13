@@ -29,15 +29,15 @@ This alerting can be done on the Raspberry Pi or other IoT central service monit
 
 #### APIs
 
-#### /api/temperature
+##### /api/temperature
 
 Gives you the current temperature in Degrees Centigrade (degC).
 
-#### /api/pressure
+##### /api/pressure
 
 Gives you the current air pressure in Pascals (pa).
 
-#### /api/altitude
+##### /api/altitude
 
 Gives you the current altitude in Meters (m).
 

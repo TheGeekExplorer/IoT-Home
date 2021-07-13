@@ -4,7 +4,7 @@
 #include <WebServer.h>
 
 // Constants
-#define HOSTNAME "X-STAIRS-LED"
+#define HOSTNAME "X-SENSOR"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"

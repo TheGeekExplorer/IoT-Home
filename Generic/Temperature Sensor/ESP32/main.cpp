@@ -53,7 +53,6 @@ void setup() {
   server.on("/",                HTTP_GET,  handleRoute_root);
   server.on("/dashboard/",      HTTP_POST, handleRoute_dashboard);
   server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
-  server.on("/api/altitude",    HTTP_GET,  handleRoute_altitude);
   server.on("/api/pressure",    HTTP_GET,  handleRoute_pressure);
   server.begin();
   Serial.println("API Server Started.");
@@ -148,7 +147,6 @@ void handleRoute_dashboard() {
   strcat(msg, "      <p>");
   strcat(msg, "        <a href='/api/temperature'>/api/temperature</a><br>");
   strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
-  strcat(msg, "        <a href='/api/altitude'>/api/altitude</a><br>");
   strcat(msg, "      </p>");
   strcat(msg, "    </main>");
   strcat(msg, "  </body>");
@@ -197,42 +195,6 @@ void handleRoute_temperature() {
 }
 
 
-/**
- * ROUTE - "/api/altitude"
- */
-void handleRoute_altitude() {
-  setHeaders_NoCache();
-  setHeaders_CrossOrigin();
-  
-  float r = 0.00;
-  char r1[10];
-  int count = 0;
-  char count1[2];
-  char msg[1000];
-  
-  // read sensor
-  for (int i=0; i<40; i++) {
-    count = i;
-    r = bmp.readAltitude();
-    if (r > 0 && r < 2000)
-      break;
-    delay(50);
-  }
-
-  // format the response
-  sprintf (r1, "%f", r);
-  sprintf (count1, "%i", count);
-  
-  strcpy(msg, "{result:{\"ROUTE\":\"altitude\",\"status\":\"OK\", \"value\":\"");
-  strcat(msg, r1);
-  strcat(msg, "\", ");
-  strcat(msg, "\"count\":");
-  strcat(msg, count1);
-  strcat(msg, "\"}}");
-
-  // Send to client
-  server.send(200, "application/json", msg);
-}
 
 
 /**

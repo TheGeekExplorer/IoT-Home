@@ -4,7 +4,7 @@
 #include <WebServer.h>
 
 // Constants
-#define HOSTNAME "X-TEMPERATURE-1"
+#define HOSTNAME "X-STAIRS-LED"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"
@@ -14,6 +14,7 @@ Adafruit_BMP085 bmp;
 // Define web server
 WebServer server(80);
 String header;
+
 
 
 void setup() {
@@ -54,10 +55,12 @@ void setup() {
   delay(1000);
   
   // Setup web server
-  server.on("/", handleRoute_root);
-  server.on("/api/temperature", handleRoute_temperature);
-  server.on("/api/altitude",    handleRoute_altitude);
-  server.on("/api/pressure",    handleRoute_pressure);
+  server.on("/",                HTTP_GET,  handleRoute_root);
+  server.on("/login/",          HTTP_GET,  handleRoute_login);
+  server.on("/dashboard/",      HTTP_POST, handleRoute_dashboard);
+  server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
+  server.on("/api/altitude",    HTTP_GET,  handleRoute_altitude);
+  server.on("/api/pressure",    HTTP_GET,  handleRoute_pressure);
   server.begin();
   Serial.println("API Server Started.");
   delay(1000);
@@ -95,6 +98,85 @@ void handleRoute_root() {
   strcat(msg, "          Welcome to the IoT Home ESP32-WROOM sensor. Access data using the /api/ urls.");
   strcat(msg, "        </p>");
   strcat(msg, "        <p>");
+  strcat(msg, "          <a href='/login/'>Login to Dashboard</a><br>");
+  strcat(msg, "        </p>");
+  strcat(msg, "      </section>");
+  strcat(msg, "    </main>");
+  strcat(msg, "  </body>");
+  strcat(msg, "</html>");
+  
+  server.send(200, "text/html", msg);
+}
+
+
+/**
+ * ROUTE - "/"
+ */
+void handleRoute_login() {
+  Serial.println("API Initiated -- Login URL View!");
+
+  // Set no cahcing headers
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  
+  char msg[2000];
+  strcpy(msg, "<html>");
+  strcat(msg, "  <head>");
+  strcat(msg, "    <title>Welcome to IoT-Home!</title>");
+  strcat(msg, "  </head>");
+  strcat(msg, "  <body>");
+  strcat(msg, "    <main>");
+  strcat(msg, "      <section>");
+  strcat(msg, "        <h1>Login to IoT Home Sensor<h1>");
+  strcat(msg, "        <p>");
+  strcat(msg, "          <form action=\"/dashboard/\" method=\"POST\">");
+  strcat(msg, "            <p>Username</p>");
+  strcat(msg, "            <input type=\"text\" name=\"username\"><br>");
+  strcat(msg, "            <p>Password</p>");
+  strcat(msg, "            <input type=\"password\" name=\"password\"><br>");
+  strcat(msg, "            <input type=\"submit\" value=\"Login!\"><br>");
+  strcat(msg, "          </form>");
+  strcat(msg, "        </p>");
+  strcat(msg, "      </section>");
+  strcat(msg, "    </main>");
+  strcat(msg, "  </body>");
+  strcat(msg, "</html>");
+  
+  server.send(200, "text/html", msg);
+}
+
+
+/**
+ * ROUTE - "/dashboard/"
+ */
+void handleRoute_dashboard() {
+  Serial.println("API Initiated -- Dashboard URL View!");
+
+  // Set no cahcing headers
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+
+  // Check login credentials
+  String username = server.arg("username");
+  String password = server.arg("password");
+  if (username != APIUSER || password != APIPASS) {
+    server.sendHeader(F("Location"), F("/login/"));
+    server.send(401, "text/html", "Not Authorised.");
+  }
+
+  // Else Carry on...
+  char msg[2000];
+  strcpy(msg, "<html>");
+  strcat(msg, "  <head>");
+  strcat(msg, "    <title>Welcome to IoT-Home!</title>");
+  strcat(msg, "  </head>");
+  strcat(msg, "  <body>");
+  strcat(msg, "    <main>");
+  strcat(msg, "      <section>");
+  strcat(msg, "        <h1>Dashboard<h1>");
+  strcat(msg, "        <p>");
   strcat(msg, "          <a href='/api/temperature'>/api/temperature</a><br>");
   strcat(msg, "          <a href='/api/pressure'>/api/pressure</a><br>");
   strcat(msg, "          <a href='/api/altitude'>/api/altitude</a><br>");
@@ -108,11 +190,18 @@ void handleRoute_root() {
 }
 
 
+
 /**
  * ROUTE - "/api/temperature"
  */
 void handleRoute_temperature() {
   Serial.println("API Initiated -- Temperature Reading!");
+
+  // Set no cahcing headers
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  
   float r = 0.00;
   char r1[10];
   int count = 0;
@@ -149,6 +238,12 @@ void handleRoute_temperature() {
  */
 void handleRoute_altitude() {
   Serial.println("API Initiated -- Altitude Reading!");
+
+  // Set no cahcing headers
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  
   float r = 0.00;
   char r1[10];
   int count = 0;
@@ -185,6 +280,12 @@ void handleRoute_altitude() {
  */
 void handleRoute_pressure() {
   Serial.println("API Initiated -- Pressure Reading!");
+
+  // Set no cahcing headers
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  
   float r = 0.00;
   char r1[10];
   int count = 0;

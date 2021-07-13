@@ -84,26 +84,46 @@ void loop() {
  */
 void handleRoute_root() {
   Serial.println("API Initiated -- Root URL View!");
+
+  // Set no cahcing headers
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
   
-  char msg[2000];
-  strcpy(msg, "<html>");
-  strcat(msg, "  <head>");
-  strcat(msg, "    <title>Welcome to IoT-Home!</title>");
-  strcat(msg, "  </head>");
-  strcat(msg, "  <body>");
-  strcat(msg, "    <main>");
-  strcat(msg, "      <section>");
-  strcat(msg, "        <h1>Welcome to IoT Home!<h1>");
-  strcat(msg, "        <p>");
-  strcat(msg, "          Welcome to the IoT Home ESP32-WROOM sensor. Access data using the /api/ urls.");
-  strcat(msg, "        </p>");
-  strcat(msg, "        <p>");
-  strcat(msg, "          <a href='/login/'>Login to Dashboard</a><br>");
-  strcat(msg, "        </p>");
-  strcat(msg, "      </section>");
-  strcat(msg, "    </main>");
-  strcat(msg, "  </body>");
-  strcat(msg, "</html>");
+  char msg[5000];
+  strcpy(msg, "<html>\r\n");
+  strcat(msg, "  <head>\r\n");
+  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+  strcat(msg, "    <style type=\"text/css\">\r\n");
+  strcat(msg, "      body {\r\n");
+  strcat(msg, "        background-color:#555;\r\n");
+  strcat(msg, "        font-size:16px;\r\n");
+  strcat(msg, "        color:#fff;\r\n");
+  strcat(msg, "        font-family: Serif;\r\n");
+  strcat(msg, "        box-sizing: border-box;\r\n");
+  strcat(msg, "      }\r\n");
+  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
+  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
+  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
+  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
+  strcat(msg, "    </style>\r\n");
+  strcat(msg, "  </head>\r\n");
+  strcat(msg, "  <body>\r\n");
+  strcat(msg, "    <main>\r\n");
+  strcat(msg, "      <section>\r\n");
+  strcat(msg, "        <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SESNOR</h1>\r\n");
+  strcat(msg, "        <p>\r\n");
+  strcat(msg, "          Welcome to the IoT Home ESP32-WROOM sensor. Access data using the /api/ urls.\r\n");
+  strcat(msg, "        </p>\r\n");
+  strcat(msg, "        <p>\r\n");
+  strcat(msg, "          <a href='/login/'>Login to Dashboard</a><br>\r\n");
+  strcat(msg, "        </p>\r\n");
+  strcat(msg, "      </section>\r\n");
+  strcat(msg, "    </main>\r\n");
+  strcat(msg, "  </body>\r\n");
+  strcat(msg, "</html>\r\n");
   
   server.send(200, "text/html", msg);
 }
@@ -116,14 +136,29 @@ void handleRoute_login() {
   Serial.println("API Initiated -- Login URL View!");
 
   // Set no cahcing headers
-  server.sendHeader(F("Expires"),       F("-1"));
-  server.sendHeader(F("Pragma"),        F("no-cache"));
-  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
   
-  char msg[2000];
+  char msg[5000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
-  strcat(msg, "    <title>Welcome to IoT-Home!</title>");
+  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+  strcat(msg, "    <style type=\"text/css\">\r\n");
+  strcat(msg, "      body {\r\n");
+  strcat(msg, "        background-color:#555;\r\n");
+  strcat(msg, "        font-size:16px;\r\n");
+  strcat(msg, "        color:#fff;\r\n");
+  strcat(msg, "        font-family: Serif;\r\n");
+  strcat(msg, "        box-sizing: border-box;\r\n");
+  strcat(msg, "      }\r\n");
+  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
+  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
+  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
+  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
+  strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
@@ -154,9 +189,8 @@ void handleRoute_dashboard() {
   Serial.println("API Initiated -- Dashboard URL View!");
 
   // Set no cahcing headers
-  server.sendHeader(F("Expires"),       F("-1"));
-  server.sendHeader(F("Pragma"),        F("no-cache"));
-  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
 
   // Check login credentials
   String username = server.arg("username");
@@ -167,10 +201,26 @@ void handleRoute_dashboard() {
   }
 
   // Else Carry on...
-  char msg[2000];
+  char msg[5000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
-  strcat(msg, "    <title>Welcome to IoT-Home!</title>");
+  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+  strcat(msg, "    <style type=\"text/css\">\r\n");
+  strcat(msg, "      body {\r\n");
+  strcat(msg, "        background-color:#555;\r\n");
+  strcat(msg, "        font-size:16px;\r\n");
+  strcat(msg, "        color:#fff;\r\n");
+  strcat(msg, "        font-family: Serif;\r\n");
+  strcat(msg, "        box-sizing: border-box;\r\n");
+  strcat(msg, "      }\r\n");
+  strcat(msg, "      main { margin:50px 50px;                   }\r\n");
+  strcat(msg, "      h1   { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h2   { font-size:20px; font-weight:bold;   }\r\n");
+  strcat(msg, "      h3   { font-size:18px; font-weight:bold;   }\r\n");
+  strcat(msg, "      p    { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a    { color:#99dd00;                      }\r\n");
+  strcat(msg, "      a:visited { color:#99dd00;               }\r\n");
+  strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
@@ -198,9 +248,8 @@ void handleRoute_temperature() {
   Serial.println("API Initiated -- Temperature Reading!");
 
   // Set no cahcing headers
-  server.sendHeader(F("Expires"),       F("-1"));
-  server.sendHeader(F("Pragma"),        F("no-cache"));
-  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
   
   float r = 0.00;
   char r1[10];
@@ -240,9 +289,8 @@ void handleRoute_altitude() {
   Serial.println("API Initiated -- Altitude Reading!");
 
   // Set no cahcing headers
-  server.sendHeader(F("Expires"),       F("-1"));
-  server.sendHeader(F("Pragma"),        F("no-cache"));
-  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
   
   float r = 0.00;
   char r1[10];
@@ -282,9 +330,8 @@ void handleRoute_pressure() {
   Serial.println("API Initiated -- Pressure Reading!");
 
   // Set no cahcing headers
-  server.sendHeader(F("Expires"),       F("-1"));
-  server.sendHeader(F("Pragma"),        F("no-cache"));
-  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
   
   float r = 0.00;
   char r1[10];
@@ -315,3 +362,18 @@ void handleRoute_pressure() {
   // Send to client
   server.send(200, "application/json", msg);
 }
+
+
+
+void setHeaders_NoCache(){
+  server.sendHeader(F("Expires"),       F("-1"));
+  server.sendHeader(F("Pragma"),        F("no-cache"));
+  server.sendHeader(F("cache-control"), F("no-cache, no-store"));
+};
+
+void setHeaders_CrossOrigin(){
+  server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
+  server.sendHeader(F("Access-Control-Max-Age"), F("600"));
+  server.sendHeader(F("Access-Control-Allow-Methods"), F("PUT,POST,GET,OPTIONS"));
+  server.sendHeader(F("Access-Control-Allow-Headers"), F("*"));
+};

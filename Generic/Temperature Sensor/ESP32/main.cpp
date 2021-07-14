@@ -9,11 +9,14 @@
 #define SSIDPASS ""
 #define APIUSER "x-smart"
 #define APIPASS "fdTE%G54m2dY!g78"
-Adafruit_BMP085 bmp;
 
-// Define web server
-WebServer server(80);
+// Variables
+String SESSION_COOKIE_KEY = "9879gsdfg7f09g0j9g0fg83xdui";
 String header;
+
+// Instantiate Objects / Devices
+WebServer server(80);
+Adafruit_BMP085 bmp;
 
 
 /**
@@ -55,7 +58,8 @@ void setup() {
   
   // WEB SERVER - Define Routes
   server.on("/",                HTTP_GET,  handleRoute_root);
-  server.on("/dashboard/",      HTTP_POST, handleRoute_dashboard);
+  server.on("/authentication",  HTTP_POST, handleRoute_authentication);
+  server.on("/dashboard/",      HTTP_GET,  handleRoute_dashboard);
   server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
   server.on("/api/pressure",    HTTP_GET,  handleRoute_pressure);
 
@@ -105,7 +109,7 @@ void handleRoute_root() {
   strcat(msg, "    <main>");
   strcat(msg, "      <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
   strcat(msg, "      <p>");
-  strcat(msg, "        <form action=\"/dashboard/\" method=\"POST\">");
+  strcat(msg, "        <form action=\"/authentication\" method=\"POST\">");
   strcat(msg, "          <p>Username</p>");
   strcat(msg, "          <input type=\"text\" name=\"username\"><br>");
   strcat(msg, "          <p>Password</p>");
@@ -125,21 +129,36 @@ void handleRoute_root() {
 
 
 /**
+ * ROUTE - "/authentication"
+ * @param void
+ * @return void
+ */
+void handleRoute_authentication() {
+  String username = server.arg("username");
+  String password = server.arg("password");
+  
+  // Check credentials are correct, or has cookie, then login
+  if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
+    server.sendHeader(F("Location"), F("/dashboard/"));
+    server.send(302, "text/html", "Authorised.");
+  
+  // Else redirect back to login page
+  } else {
+    server.sendHeader(F("Location"), F("/?status=no"));
+    server.send(302, "text/html", "Not Authorised.");
+  }
+}
+
+
+/**
  * ROUTE - "/dashboard/"
  * @param void
  * @return void
  */
 void handleRoute_dashboard() {
-  
-  // Check login credentials
-  String username = server.arg("username");
-  String password = server.arg("password");
-  if (username != APIUSER || password != APIPASS) {
-    server.sendHeader(F("Location"), F("/"));
-    server.send(401, "text/html", "Not Authorised.");
-  }
+  checkCookieAuthed();
 
-  // Else Carry on...
+  // Else, build content for page
   char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
@@ -180,6 +199,9 @@ void handleRoute_dashboard() {
  * @return void
  */
 void handleRoute_temperature() {
+  checkCookieAuthed();
+
+  // Define variables
   float r = 0.00;
   char r1[10];
   char msg[1000];
@@ -206,6 +228,9 @@ void handleRoute_temperature() {
  * @return void
  */
 void handleRoute_pressure() {
+  checkCookieAuthed();
+
+  // Define variables
   float r = 0.00;
   char r1[10];
   char msg[1000];
@@ -256,16 +281,53 @@ float readSensor (String sensor) {
   return r;
 }
 
+
+/**
+ * Set the NoCaching headers for the browser
+ * @param void
+ * @return void
+ */
 void setHeaders_NoCache(){
   server.sendHeader(F("Expires"),       F("-1"));
   server.sendHeader(F("Pragma"),        F("no-cache"));
   server.sendHeader(F("cache-control"), F("no-cache, no-store"));
 };
 
+/**
+ * Set the CORS headers for the browser
+ * @param void
+ * @return void
+ */
 void setHeaders_CrossOrigin(){
   server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
   server.sendHeader(F("Access-Control-Max-Age"), F("600"));
-  server.sendHeader(F("Access-Control-Allow-Methods"), F("PUT,POST,GET,OPTIONS"));
+  server.sendHeader(F("Access-Control-Allow-Methods"), F("POST,GET"));
   server.sendHeader(F("Access-Control-Allow-Headers"), F("*"));
 };
 
+/**
+ * Checks if authed with cookie, then redirects to login if not.
+ * @param void
+ * @return void
+ */
+void checkCookieAuthed () {
+  String cookie_value = "09v2n548n243";
+  if (cookie_value != SESSION_COOKIE_KEY) {
+    server.sendHeader(F("Location"), F("/?status=no"));
+    server.send(302, "text/html", "Not Authorised.");
+  }
+}
+
+/**
+ * Checks if authed with cookie, then redirects to login if not.
+ * @param void
+ * @return void
+ */
+bool checkCookieAuthedBool () {
+  String cookie_value = "09v2n548n243";
+  if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
+    cookie_value = server.header("Cookie");
+  if (cookie_value == SESSION_COOKIE_KEY)
+    return true;
+  return false;
+}

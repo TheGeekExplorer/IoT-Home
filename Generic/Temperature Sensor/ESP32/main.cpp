@@ -5,7 +5,7 @@
 #include "mbedtls/md.h"
 
 // Constants
-#define HOSTNAME "X-SENSOR-TEMP1"
+#define HOSTNAME "X-SENSOR"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"
@@ -351,6 +351,7 @@ void setSessionCookie () {
   
   // Set cookie
   server.sendHeader("Set-Cookie", cookie);
+  SESSION_COOKIE_KEY = cookie;
 }
 
 

@@ -425,8 +425,6 @@ void destroySession () {
   Serial.println("Creating session...");
   destroySessionCookie();
   SESSION_COOKIE_KEY = "none";
-  server.sendHeader(F("Location"), F("/?status=no"));
-  server.send(302, "text/html", "Not Authorised.");
 }
 
 

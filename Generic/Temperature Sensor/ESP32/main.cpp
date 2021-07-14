@@ -188,7 +188,7 @@ void handleRoute_temperature() {
   // Define variables
   float r = 0.00;
   char r1[10];
-  char msg[1000];
+  char msg[255];
 
   // Read sensor
   r = readSensor("temperature");
@@ -217,7 +217,7 @@ void handleRoute_pressure() {
   // Define variables
   float r = 0.00;
   char r1[10];
-  char msg[1000];
+  char msg[255];
 
   // Read sensor
   r = readSensor("pressure");
@@ -248,6 +248,7 @@ void handleRoute_identity() {
   setHeaders_CrossOrigin();
 
   // Define identity
+  char msg[255];
   char identity[25] = HOSTNAME;
 
   // Build content

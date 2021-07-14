@@ -275,14 +275,14 @@ float readSensor (String sensor) {
   for (int i=0; i<40; i++) {
 
     // TEMPERATURE SENSOR
-    if (sensor == "Temperature") {
+    if (sensor == "temperature") {
       r = bmp.readTemperature();
       Serial.println(r);
       if (r > -20 && r < 40)
         break;
         
     // PRESSURE SENSOR
-    } else if (sensor == "Pressure") {
+    } else if (sensor == "pressure") {
       r = bmp.readPressure();
       Serial.println(r);
       if (r > 850 && r < 120000)

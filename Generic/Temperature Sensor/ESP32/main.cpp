@@ -23,24 +23,24 @@ Adafruit_BMP085 bmp;
 
 
 /**
- * Setup method for ESP32
- * @param void
- * @return void
- */
+   Setup method for ESP32
+   @param void
+   @return void
+*/
 void setup() {
 
   // SERIAL - Setup serial
   Serial.begin(9600);
   Serial.println("Serial Started.");
   delay(1000);
-  
+
   // WIFI - Setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(); delay(100);
   WiFi.setHostname(HOSTNAME);
   WiFi.begin(SSIDNAME, SSIDPASS);
   WiFi.setHostname(HOSTNAME);
-  
+
   // WIFI - Wait until connected
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print('.');
@@ -49,27 +49,24 @@ void setup() {
 
   // WIFI - Display connection details
   Serial.println("Connected.");
-  Serial.print("Device IP: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("MAC Address:" );
-  Serial.println(WiFi.macAddress());
-  Serial.print("SSID:" );
-  Serial.println(WiFi.SSID());
-  Serial.print("RSSI:" );
-  Serial.println(WiFi.RSSI());
+  Serial.print("Device IP: ");   Serial.println(WiFi.localIP());
+  Serial.print("MAC Address:" ); Serial.println(WiFi.macAddress());
+  Serial.print("SSID:" );        Serial.println(WiFi.SSID());
+  Serial.print("RSSI:" );        Serial.println(WiFi.RSSI());
   delay(1000);
-  
+
   // WEB SERVER - Define Routes
   server.on("/",                       HTTP_GET,  handleRoute_root);
   server.on("/authentication",         HTTP_POST, handleRoute_authentication);
   server.on("/authentication/logout",  HTTP_GET,  handleRoute_authentication_logout);
   server.on("/dashboard/",             HTTP_GET,  handleRoute_dashboard);
+  server.on("/api/identity",           HTTP_GET,  handleRoute_identity);
   server.on("/api/temperature",        HTTP_GET,  handleRoute_temperature);
   server.on("/api/pressure",           HTTP_GET,  handleRoute_pressure);
 
   // WEB SERVER - Define which request headers to collect
-  const char *headers[] = {"Host","Referer","Cookie"};
-  size_t headersCount = sizeof(headers)/sizeof(char*);
+  const char *headers[] = {"Host", "Referer", "Cookie"};
+  size_t headersCount = sizeof(headers) / sizeof(char*);
   server.collectHeaders(headers, headersCount);
 
   // WEB SERVER - Begin!
@@ -86,31 +83,31 @@ void setup() {
 
 
 /**
- * Main loop method
- * @param void
- * @return void
- */
+   Main loop method
+   @param void
+   @return void
+*/
 void loop() {
   server.handleClient();
 }
 
 
 /**
- * ROUTE - "/"
- * @param void
- * @return void
- */
+   ROUTE - "/"
+   @param void
+   @return void
+*/
 void handleRoute_root() {
   char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 10px #333; }\r\n");
-  strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+  strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
+  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#D52E84; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
@@ -138,10 +135,10 @@ void handleRoute_root() {
 
 
 /**
- * ROUTE - "/dashboard/"
- * @param void
- * @return void
- */
+   ROUTE - "/dashboard/"
+   @param void
+   @return void
+*/
 void handleRoute_dashboard() {
   checkCookieAuthed();
 
@@ -151,11 +148,11 @@ void handleRoute_dashboard() {
   strcat(msg, "  <head>");
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; box-shadow:0 0 10px #333; }\r\n");
-  strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
+  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+  strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
+  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#D52E84; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
@@ -181,10 +178,10 @@ void handleRoute_dashboard() {
 
 
 /**
- * ROUTE - "/api/temperature"
- * @param void
- * @return void
- */
+   ROUTE - "/api/temperature"
+   @param void
+   @return void
+*/
 void handleRoute_temperature() {
   checkCookieAuthed();
 
@@ -192,7 +189,7 @@ void handleRoute_temperature() {
   float r = 0.00;
   char r1[10];
   char msg[1000];
-  
+
   // Read sensor
   r = readSensor("temperature");
   sprintf (r1, "%f", r);
@@ -210,10 +207,10 @@ void handleRoute_temperature() {
 
 
 /**
- * ROUTE - "/api/pressure"
- * @param void
- * @return void
- */
+   ROUTE - "/api/pressure"
+   @param void
+   @return void
+*/
 void handleRoute_pressure() {
   checkCookieAuthed();
 
@@ -221,7 +218,7 @@ void handleRoute_pressure() {
   float r = 0.00;
   char r1[10];
   char msg[1000];
-  
+
   // Read sensor
   r = readSensor("pressure");
   sprintf (r1, "%f", r);
@@ -238,18 +235,42 @@ void handleRoute_pressure() {
 }
 
 
+
 /**
- * Reas the sensor and return the value
- * @param String sensor
- * @param float r
- * @return char*
- */
+   ROUTE - "/api/identity"
+   Exists so that it can be identifed on the network because
+   we cannot rely on the IP address as it changes.
+   @param void
+   @return void
+*/
+void handleRoute_identity() {
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
+
+  // Define identity
+  char identity[25] = HOSTNAME;
+
+  // Build content
+  strcpy(msg, "{result:{\"ROUTE\":\"identity\",\"status\":\"OK\", \"value\":\"");
+  strcat(msg, identity);
+  strcat(msg, "\"}}");
+
+  // Send content to client
+  server.send(200, "application/json", msg);
+}
+
+/**
+   Reas the sensor and return the value
+   @param String sensor
+   @param float r
+   @return char
+*/
 float readSensor (String sensor) {
   float r = 0.00;
   char r1[10];
-  
+
   // read sensor
-  for (int i=0; i<40; i++) {
+  for (int i = 0; i < 40; i++) {
 
     // TEMPERATURE SENSOR
     if (sensor == "temperature") {
@@ -257,8 +278,8 @@ float readSensor (String sensor) {
       Serial.println(r);
       if (r > -20 && r < 40)
         break;
-        
-    // PRESSURE SENSOR
+
+      // PRESSURE SENSOR
     } else if (sensor == "pressure") {
       r = bmp.readPressure();
       Serial.println(r);
@@ -272,21 +293,21 @@ float readSensor (String sensor) {
 
 
 /**
- * ROUTE - "/authentication"
- * @param void
- * @return void
- */
+   ROUTE - "/authentication"
+   @param void
+   @return void
+*/
 void handleRoute_authentication() {
   String username = server.arg("username");
   String password = server.arg("password");
-  
+
   // Check credentials are correct, or has cookie, then login
   if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
     createSession();
     server.sendHeader(F("Location"), F("/dashboard/"));
     server.send(302, "text/html", "Authorised.");
-  
-  // Else redirect back to login page
+
+    // Else redirect back to login page
   } else {
     destroySession();
     server.sendHeader(F("Location"), F("/?status=no"));
@@ -296,10 +317,10 @@ void handleRoute_authentication() {
 
 
 /**
- * ROUTE - "/authentication/logout"
- * @param void
- * @return void
- */
+   ROUTE - "/authentication/logout"
+   @param void
+   @return void
+*/
 void handleRoute_authentication_logout() {
   destroySession();
   server.sendHeader(F("Location"), F("/?status=logged-out"));
@@ -308,11 +329,11 @@ void handleRoute_authentication_logout() {
 
 
 /**
- * Set the NoCaching headers for the browser
- * @param void
- * @return void
- */
-void setHeaders_NoCache(){
+   Set the NoCaching headers for the browser
+   @param void
+   @return void
+*/
+void setHeaders_NoCache() {
   server.sendHeader(F("Expires"),       F("-1"));
   server.sendHeader(F("Pragma"),        F("no-cache"));
   server.sendHeader(F("cache-control"), F("no-cache, no-store"));
@@ -320,11 +341,11 @@ void setHeaders_NoCache(){
 
 
 /**
- * Set the CORS headers for the browser
- * @param void
- * @return void
- */
-void setHeaders_CrossOrigin(){
+   Set the CORS headers for the browser
+   @param void
+   @return void
+*/
+void setHeaders_CrossOrigin() {
   server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
   server.sendHeader(F("Access-Control-Max-Age"), F("600"));
   server.sendHeader(F("Access-Control-Allow-Methods"), F("POST,GET"));
@@ -333,10 +354,10 @@ void setHeaders_CrossOrigin(){
 
 
 /**
- * Creates a new SESSION
- * @param void
- * @return void
- */
+   Creates a new SESSION
+   @param void
+   @return void
+*/
 String createSessionID () {
   char *key = "";
   char *payload = "";
@@ -345,7 +366,7 @@ String createSessionID () {
   int  r1, r2 = 0;
   char r3[20], r4[20] = "";
   String hashf = "";
-  
+
   // Generate KEY and VALUE
   //rand(time(NULL));
   r1 = rand();
@@ -354,37 +375,37 @@ String createSessionID () {
   sprintf (r4, "%i", r2);
   key     = r3;
   payload = r4;
-  
+
   // Generate HASH String
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
-  
+
   const size_t payloadLength = strlen(payload);
-  const size_t keyLength = strlen(key);            
- 
+  const size_t keyLength = strlen(key);
+
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
   mbedtls_md_hmac_starts(&ctx, (const unsigned char *) key, keyLength);
   mbedtls_md_hmac_update(&ctx, (const unsigned char *) payload, payloadLength);
   mbedtls_md_hmac_finish(&ctx, hmacResult);
   mbedtls_md_free(&ctx);
-  
-  for(int i= 0; i< sizeof(hmacResult); i++){
-      char str[3];
-      sprintf(str, "%02x", (int)hmacResult[i]);
-      hashf = hashf + str;
+
+  for (int i = 0; i < sizeof(hmacResult); i++) {
+    char str[3];
+    sprintf(str, "%02x", (int)hmacResult[i]);
+    hashf = hashf + str;
   }
-  
+
   Serial.println("HASH GENERATED: " + hashf);
   return hashf;
 }
 
 
 /**
- * Create Session
- * @param void
- * @return void
- */
+   Create Session
+   @param void
+   @return void
+*/
 void createSession() {
   Serial.println("Creating session...");
   String hash = createSessionID();
@@ -395,10 +416,10 @@ void createSession() {
 
 
 /**
- * Checks if authed with cookie, then redirects to login if not.
- * @param void
- * @return void
- */
+   Checks if authed with cookie, then redirects to login if not.
+   @param void
+   @return void
+*/
 void destroySession () {
   Serial.println("Creating session...");
   destroySessionCookie();
@@ -409,10 +430,10 @@ void destroySession () {
 
 
 /**
- * Destroys the SESSION
- * @param void
- * @return void
- */
+   Destroys the SESSION
+   @param void
+   @return void
+*/
 void destroySessionCookie () {
   Serial.println("Destroying session cookie...");
   String hash = createSessionID();
@@ -422,10 +443,10 @@ void destroySessionCookie () {
 
 
 /**
- * Checks if authed with cookie, then redirects to login if not.
- * @param void
- * @return void
- */
+   Checks if authed with cookie, then redirects to login if not.
+   @param void
+   @return void
+*/
 void checkCookieAuthed () {
   Serial.println("Checking Cookie Authed...");
   String cookie_value = "09v2n548n243";
@@ -439,10 +460,10 @@ void checkCookieAuthed () {
 
 
 /**
- * Checks if authed with cookie, then returns true/false.
- * @param void
- * @return void
- */
+   Checks if authed with cookie, then returns true/false.
+   @param void
+   @return void
+*/
 bool checkCookieAuthedBool () {
   Serial.println("Checking Cookie Authed (bool)...");
   String cookie_value = "768fh89as7d6f";

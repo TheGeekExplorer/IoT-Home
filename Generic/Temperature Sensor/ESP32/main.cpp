@@ -2,9 +2,10 @@
 #include <Adafruit_BMP085.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include "mbedtls/md.h"
 
 // Constants
-#define HOSTNAME "X-SENSOR"
+#define HOSTNAME "X-SENSOR-TEMP1"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"
@@ -139,11 +140,13 @@ void handleRoute_authentication() {
   
   // Check credentials are correct, or has cookie, then login
   if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
+    setSessionCookie();
     server.sendHeader(F("Location"), F("/dashboard/"));
     server.send(302, "text/html", "Authorised.");
   
   // Else redirect back to login page
   } else {
+    destroySessionCookie();
     server.sendHeader(F("Location"), F("/?status=no"));
     server.send(302, "text/html", "Not Authorised.");
   }
@@ -293,6 +296,7 @@ void setHeaders_NoCache(){
   server.sendHeader(F("cache-control"), F("no-cache, no-store"));
 };
 
+
 /**
  * Set the CORS headers for the browser
  * @param void
@@ -304,6 +308,61 @@ void setHeaders_CrossOrigin(){
   server.sendHeader(F("Access-Control-Allow-Methods"), F("POST,GET"));
   server.sendHeader(F("Access-Control-Allow-Headers"), F("*"));
 };
+
+
+/**
+ * Creates a new SESSION
+ * @param void
+ * @return void
+ */
+void setSessionCookie () {
+  char *key = "secretKey";
+  char *payload = "Hello HMAC SHA 256!";
+  byte hmacResult[32];
+  char hash[255] = "";
+  
+  mbedtls_md_context_t ctx;
+  mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+ 
+  const size_t payloadLength = strlen(payload);
+  const size_t keyLength = strlen(key);            
+ 
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
+  mbedtls_md_hmac_starts(&ctx, (const unsigned char *) key, keyLength);
+  mbedtls_md_hmac_update(&ctx, (const unsigned char *) payload, payloadLength);
+  mbedtls_md_hmac_finish(&ctx, hmacResult);
+  mbedtls_md_free(&ctx);
+  
+  for(int i= 0; i< sizeof(hmacResult); i++){
+      char str[3];
+      sprintf(str, "%02x", (int)hmacResult[i]);
+      strcat(hash, str);
+  }
+
+  // Build cookie string
+  char cookie[265] = "X-SESSION=";
+  strcat(cookie, hash);
+
+  // DEBUG the cookie value set
+  Serial.print("COOKIE: |");
+  Serial.print(cookie);
+  Serial.println("|");
+  
+  // Set cookie
+  server.sendHeader("Set-Cookie", cookie);
+}
+
+
+/**
+ * Destroys the SESSION
+ * @param void
+ * @return void
+ */
+void destroySessionCookie () {
+  server.sendHeader("Set-Cookie", "X-SESSION=none");
+}
+
 
 /**
  * Checks if authed with cookie, then redirects to login if not.
@@ -318,8 +377,9 @@ void checkCookieAuthed () {
   }
 }
 
+
 /**
- * Checks if authed with cookie, then redirects to login if not.
+ * Checks if authed with cookie, then returns true/false.
  * @param void
  * @return void
  */

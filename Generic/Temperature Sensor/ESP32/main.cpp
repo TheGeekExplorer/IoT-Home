@@ -3,16 +3,18 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include "mbedtls/md.h"
+#include <time.h>
+#include <stdlib.h>
 
 // Constants
-#define HOSTNAME "X-SENSOR"
+#define HOSTNAME "X-SENSOR-TEMP1"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"
 #define APIPASS "fdTE%G54m2dY!g78"
 
 // Variables
-String SESSION_COOKIE_KEY = "9879gsdfg7f09g0j9g0fg83xdui";
+String SESSION_COOKIE_KEY = "none";
 String header;
 
 // Instantiate Objects / Devices
@@ -64,7 +66,12 @@ void setup() {
   server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
   server.on("/api/pressure",    HTTP_GET,  handleRoute_pressure);
 
-  // WEB SERVER - Start Server!
+  // WEB SERVER - Define which request headers to collect
+  const char *headers[] = {"Host","Referer","Cookie"};
+  size_t headersCount = sizeof(headers)/sizeof(char*);
+  server.collectHeaders(headers, headersCount);
+
+  // WEB SERVER - Begin!
   server.begin();
   Serial.println("API Server Started.");
   delay(1000);
@@ -99,7 +106,7 @@ void handleRoute_root() {
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
   strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; box-shadow:0 0 10px #333; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 10px #333; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold;   }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
   strcat(msg, "      a     { color:#99dd00; } a:visited { color:#99dd00; }\r\n");
@@ -270,12 +277,14 @@ float readSensor (String sensor) {
     // TEMPERATURE SENSOR
     if (sensor == "Temperature") {
       r = bmp.readTemperature();
+      Serial.println(r);
       if (r > -20 && r < 40)
         break;
         
     // PRESSURE SENSOR
     } else if (sensor == "Pressure") {
       r = bmp.readPressure();
+      Serial.println(r);
       if (r > 850 && r < 120000)
         break;
     }
@@ -316,14 +325,26 @@ void setHeaders_CrossOrigin(){
  * @return void
  */
 void setSessionCookie () {
-  char *key = "secretKey";
-  char *payload = "Hello HMAC SHA 256!";
+  char *key = "";
+  char *payload = "";
   byte hmacResult[32];
   char hash[255] = "";
+  int  r1, r2 = 0;
+  char r3[20], r4[20] = "";
   
+  // Generate KEY and VALUE
+  //rand(time(NULL));
+  r1 = rand();
+  r2 = rand();
+  sprintf (r3, "%i", r1);
+  sprintf (r4, "%i", r2);
+  key     = r3;
+  payload = r4;
+  
+  // Generate HASH String
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
- 
+  
   const size_t payloadLength = strlen(payload);
   const size_t keyLength = strlen(key);            
  
@@ -343,11 +364,6 @@ void setSessionCookie () {
   // Build cookie string
   char cookie[265] = "X-SESSION=";
   strcat(cookie, hash);
-
-  // DEBUG the cookie value set
-  Serial.print("COOKIE: |");
-  Serial.print(cookie);
-  Serial.println("|");
   
   // Set cookie
   server.sendHeader("Set-Cookie", cookie);
@@ -371,7 +387,23 @@ void destroySessionCookie () {
  * @return void
  */
 void checkCookieAuthed () {
+  
+  Serial.print("COOKIE: |");
+  Serial.print(SESSION_COOKIE_KEY);
+  Serial.println("|");
+  String cv = server.header("Cookie");
+  Serial.print("COOKIE: |");
+  Serial.print(cv);
+  Serial.println("|");
+  if (server.hasHeader("Host")) {
+    Serial.print("COOKIE: |");
+    Serial.print("YES");
+    Serial.println("|");
+  }
+  
   String cookie_value = "09v2n548n243";
+  if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
+    cookie_value = server.header("Cookie");
   if (cookie_value != SESSION_COOKIE_KEY) {
     server.sendHeader(F("Location"), F("/?status=no"));
     server.send(302, "text/html", "Not Authorised.");

@@ -387,20 +387,6 @@ void destroySessionCookie () {
  * @return void
  */
 void checkCookieAuthed () {
-  
-  Serial.print("COOKIE: |");
-  Serial.print(SESSION_COOKIE_KEY);
-  Serial.println("|");
-  String cv = server.header("Cookie");
-  Serial.print("COOKIE: |");
-  Serial.print(cv);
-  Serial.println("|");
-  if (server.hasHeader("Host")) {
-    Serial.print("COOKIE: |");
-    Serial.print("YES");
-    Serial.println("|");
-  }
-  
   String cookie_value = "09v2n548n243";
   if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
     cookie_value = server.header("Cookie");
@@ -417,7 +403,7 @@ void checkCookieAuthed () {
  * @return void
  */
 bool checkCookieAuthedBool () {
-  String cookie_value = "09v2n548n243";
+  String cookie_value = "768fh89as7d6f";
   if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
     cookie_value = server.header("Cookie");
   if (cookie_value == SESSION_COOKIE_KEY)

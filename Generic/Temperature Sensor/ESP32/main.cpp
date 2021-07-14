@@ -60,11 +60,12 @@ void setup() {
   delay(1000);
   
   // WEB SERVER - Define Routes
-  server.on("/",                HTTP_GET,  handleRoute_root);
-  server.on("/authentication",  HTTP_POST, handleRoute_authentication);
-  server.on("/dashboard/",      HTTP_GET,  handleRoute_dashboard);
-  server.on("/api/temperature", HTTP_GET,  handleRoute_temperature);
-  server.on("/api/pressure",    HTTP_GET,  handleRoute_pressure);
+  server.on("/",                       HTTP_GET,  handleRoute_root);
+  server.on("/authentication",         HTTP_POST, handleRoute_authentication);
+  server.on("/authentication/logout",  HTTP_GET,  handleRoute_authentication_logout);
+  server.on("/dashboard/",             HTTP_GET,  handleRoute_dashboard);
+  server.on("/api/temperature",        HTTP_GET,  handleRoute_temperature);
+  server.on("/api/pressure",           HTTP_GET,  handleRoute_pressure);
 
   // WEB SERVER - Define which request headers to collect
   const char *headers[] = {"Host","Referer","Cookie"};
@@ -137,30 +138,6 @@ void handleRoute_root() {
 
 
 /**
- * ROUTE - "/authentication"
- * @param void
- * @return void
- */
-void handleRoute_authentication() {
-  String username = server.arg("username");
-  String password = server.arg("password");
-  
-  // Check credentials are correct, or has cookie, then login
-  if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
-    setSessionCookie();
-    server.sendHeader(F("Location"), F("/dashboard/"));
-    server.send(302, "text/html", "Authorised.");
-  
-  // Else redirect back to login page
-  } else {
-    destroySessionCookie();
-    server.sendHeader(F("Location"), F("/?status=no"));
-    server.send(302, "text/html", "Not Authorised.");
-  }
-}
-
-
-/**
  * ROUTE - "/dashboard/"
  * @param void
  * @return void
@@ -190,7 +167,7 @@ void handleRoute_dashboard() {
   strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
   strcat(msg, "      </p>");
   strcat(msg, "      <p>");
-  strcat(msg, "        <a href='/'>[x] Logout</a><br>");
+  strcat(msg, "        <a href='/authentication/logout'>[x] Logout</a><br>");
   strcat(msg, "      </p>");
   strcat(msg, "    </main>");
   strcat(msg, "  </body>");
@@ -295,6 +272,42 @@ float readSensor (String sensor) {
 
 
 /**
+ * ROUTE - "/authentication"
+ * @param void
+ * @return void
+ */
+void handleRoute_authentication() {
+  String username = server.arg("username");
+  String password = server.arg("password");
+  
+  // Check credentials are correct, or has cookie, then login
+  if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
+    createSession();
+    server.sendHeader(F("Location"), F("/dashboard/"));
+    server.send(302, "text/html", "Authorised.");
+  
+  // Else redirect back to login page
+  } else {
+    destroySession();
+    server.sendHeader(F("Location"), F("/?status=no"));
+    server.send(302, "text/html", "Not Authorised.");
+  }
+}
+
+
+/**
+ * ROUTE - "/authentication/logout"
+ * @param void
+ * @return void
+ */
+void handleRoute_authentication_logout() {
+  destroySession();
+  server.sendHeader(F("Location"), F("/?status=logged-out"));
+  server.send(302, "text/html", "Logging out...");
+}
+
+
+/**
  * Set the NoCaching headers for the browser
  * @param void
  * @return void
@@ -324,13 +337,14 @@ void setHeaders_CrossOrigin(){
  * @param void
  * @return void
  */
-void setSessionCookie () {
+String createSessionID () {
   char *key = "";
   char *payload = "";
   byte hmacResult[32];
   char hash[255] = "";
   int  r1, r2 = 0;
   char r3[20], r4[20] = "";
+  String hashf = "";
   
   // Generate KEY and VALUE
   //rand(time(NULL));
@@ -358,16 +372,39 @@ void setSessionCookie () {
   for(int i= 0; i< sizeof(hmacResult); i++){
       char str[3];
       sprintf(str, "%02x", (int)hmacResult[i]);
-      strcat(hash, str);
+      hashf = hashf + str;
   }
-
-  // Build cookie string
-  char cookie[265] = "X-SESSION=";
-  strcat(cookie, hash);
   
-  // Set cookie
+  Serial.println("HASH GENERATED: " + hashf);
+  return hashf;
+}
+
+
+/**
+ * Create Session
+ * @param void
+ * @return void
+ */
+void createSession() {
+  Serial.println("Creating session...");
+  String hash = createSessionID();
+  String cookie = "X-SESSION=" + hash;
   server.sendHeader("Set-Cookie", cookie);
   SESSION_COOKIE_KEY = cookie;
+}
+
+
+/**
+ * Checks if authed with cookie, then redirects to login if not.
+ * @param void
+ * @return void
+ */
+void destroySession () {
+  Serial.println("Creating session...");
+  destroySessionCookie();
+  SESSION_COOKIE_KEY = "none";
+  server.sendHeader(F("Location"), F("/?status=no"));
+  server.send(302, "text/html", "Not Authorised.");
 }
 
 
@@ -377,6 +414,9 @@ void setSessionCookie () {
  * @return void
  */
 void destroySessionCookie () {
+  Serial.println("Destroying session cookie...");
+  String hash = createSessionID();
+  SESSION_COOKIE_KEY = hash;
   server.sendHeader("Set-Cookie", "X-SESSION=none");
 }
 
@@ -387,6 +427,7 @@ void destroySessionCookie () {
  * @return void
  */
 void checkCookieAuthed () {
+  Serial.println("Checking Cookie Authed...");
   String cookie_value = "09v2n548n243";
   if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
     cookie_value = server.header("Cookie");
@@ -403,6 +444,7 @@ void checkCookieAuthed () {
  * @return void
  */
 bool checkCookieAuthedBool () {
+  Serial.println("Checking Cookie Authed (bool)...");
   String cookie_value = "768fh89as7d6f";
   if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
     cookie_value = server.header("Cookie");

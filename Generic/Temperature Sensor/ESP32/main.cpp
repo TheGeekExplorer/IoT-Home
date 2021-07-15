@@ -37,16 +37,18 @@ void setup() {
 
   // SERIAL - Setup serial
   Serial.begin(9600);
-  Serial.println("Serial Started.");
+  Serial.println("> Serial Started.");
   delay(1000);
 
   // EEPROM - Initialise
   EEPROM.begin(EEPROM_SIZE);
-  getWiFiCedentials();
   delay(1000);
 
   // WIFI - Setup wifi
-  Serial.print("Connecting to WiFi");
+  Serial.println("> Getting WiFi details from EEPROM.");
+  getWiFiCedentials();  // Gets SSID / SSID PASS from EEPROM and stores in SSIDNAME / SSIDPASS globals.
+  getHostname();        // Gets HOSTNAME from EEPROM and stores in HOSTNAME global.
+  Serial.print("> Connecting to WiFi");
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(); delay(100);
   WiFi.setHostname(HOSTNAME);
@@ -487,7 +489,7 @@ bool checkCookieAuthedBool () {
 
 
 /**
- * Gets the SSID Credentials and Hostname from the EEPROM
+ * Gets the SSID Credentials from the EEPROM
  * @param void
  * @return void
  */
@@ -504,8 +506,15 @@ void getWiFiCedentials () {
     int digit = EEPROM.read(i);      // Read the digit from the EEPROM
     SSIDPASS[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
   }
+}
 
-  // Get HOSTNAME
+
+/**
+ * Gets the HOSTNAME from the EEPROM
+ * @param void
+ * @return void
+ */
+void getHostname () {
   for (int i=EEPROM_HOSTNAME_LOCATION; i<(EEPROM_HOSTNAME_LOCATION+30); i++) {
     int digit = EEPROM.read(i);      // Read the digit from the EEPROM
     HOSTNAME[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents

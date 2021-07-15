@@ -57,7 +57,7 @@ void setup() {
   // connect to WiFi
   if (!isCreds) {
     
-    Serial.println("> Running blutooth setup device program...");
+    Serial.println("> Running blutooth device setup program...");
 
     // Wipe the EEPROM
     wipeEEPROM(); delay(2000);
@@ -130,6 +130,9 @@ void setup() {
       Serial.println(">> Hanging.");
       while (1) {}
     }
+
+    // Completed boot
+    Serial.println("> Boot Completed. Waiting for HTTP Requests.");
   }
 }
 
@@ -330,14 +333,12 @@ float readSensor (String sensor) {
     // TEMPERATURE SENSOR
     if (sensor == "temperature") {
       r = bmp.readTemperature();
-      Serial.println(r);
       if (r > -20 && r < 40)
         break;
 
       // PRESSURE SENSOR
     } else if (sensor == "pressure") {
       r = bmp.readPressure();
-      Serial.println(r);
       if (r > 850 && r < 120000)
         break;
     }
@@ -462,8 +463,6 @@ String createSessionID () {
     sprintf(str, "%02x", (int)hmacResult[i]);
     hashf = hashf + str;
   }
-
-  Serial.println("HASH GENERATED: " + hashf);
   return hashf;
 }
 
@@ -474,7 +473,6 @@ String createSessionID () {
    @return void
 */
 void createSession() {
-  Serial.println("Creating session...");
   String hash = createSessionID();
   String cookie = "X-SESSION=" + hash;
   server.sendHeader("Set-Cookie", cookie);
@@ -488,7 +486,6 @@ void createSession() {
    @return void
 */
 void destroySession () {
-  Serial.println("Creating session...");
   destroySessionCookie();
   SESSION_COOKIE_KEY = "none";
 }
@@ -500,7 +497,6 @@ void destroySession () {
    @return void
 */
 void destroySessionCookie () {
-  Serial.println("Destroying session cookie...");
   String hash = createSessionID();
   SESSION_COOKIE_KEY = hash;
   server.sendHeader("Set-Cookie", "X-SESSION=none");
@@ -513,7 +509,6 @@ void destroySessionCookie () {
    @return void
 */
 void checkCookieAuthed () {
-  Serial.println("Checking Cookie Authed...");
   String cookie_value = "09v2n548n243";
   if (server.hasHeader("Cookie") && SESSION_COOKIE_KEY != "")
     cookie_value = server.header("Cookie");

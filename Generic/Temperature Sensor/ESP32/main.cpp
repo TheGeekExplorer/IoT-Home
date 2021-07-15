@@ -7,21 +7,27 @@
 #include <Adafruit_BMP085.h>
 #include "mbedtls/md.h"
 
-// Constants
-#define APIUSER "x-smart"
-#define APIPASS "fdTE%G54m2dY!g78"
-#define EEPROM_SIZE 255
+// API Config
+char APIUSER[20]  = "x-smart";
+char APIPASS[20]  = "fdTE%G54m2dY!g78";
 
-// Variables
-char HOSTNAME[30] = "X-SENSOR";
-char SSIDNAME[30] = "";
-char SSIDPASS[30] = "";
-int  EEPROM_SSIDNAME_LOCATION = 0;
-int  EEPROM_SSIDPASS_LOCATION = 30;
-int  EEPROM_HOSTNAME_LOCATION = 60;
+// WiFi Config Variables
+char SSIDNAME[30];
+char SSIDPASS[30];
+char HOSTNAME[30];
+
+// EEPROM Config
+#define EEPROM_SIZE 255
+int  EEPROM_SSIDNAME_LOCATION = 1;
+int  EEPROM_SSIDPASS_LOCATION = 36;
+int  EEPROM_HOSTNAME_LOCATION = 71;
+int  EEPROM_SSIDNAME_ISSET_LOCATION = 111;
+int  EEPROM_SSIDPASS_ISSET_LOCATION = 113;
+int  EEPROM_HOSTNAME_ISSET_LOCATION = 115;
+
+// Other Variables
 String SESSION_COOKIE_KEY = "none";
 String header;
-int EncodedString[30];  // Encoding a string to be stored in EEPROM
 
 // Instantiate Objects / Devices
 WebServer server(80);
@@ -42,57 +48,88 @@ void setup() {
 
   // EEPROM - Initialise
   EEPROM.begin(EEPROM_SIZE);
+  bool isCreds    = getWiFiCedentials();  // Gets SSID / SSID PASS from EEPROM and stores in SSIDNAME / SSIDPASS globals.
+  bool isHostname = getHostname();        // Gets HOSTNAME from EEPROM and stores in HOSTNAME global.
   delay(1000);
 
-  // WIFI - Setup wifi
-  Serial.println("> Getting WiFi details from EEPROM.");
-  getWiFiCedentials();  // Gets SSID / SSID PASS from EEPROM and stores in SSIDNAME / SSIDPASS globals.
-  getHostname();        // Gets HOSTNAME from EEPROM and stores in HOSTNAME global.
-  Serial.print("> Connecting to WiFi");
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(); delay(100);
-  WiFi.setHostname(HOSTNAME);
-  WiFi.begin(SSIDNAME, SSIDPASS);
-  WiFi.setHostname(HOSTNAME);
+  
+  // If no creds stored in EEPROM then SETUP via Blutooth, else
+  // connect to WiFi
+  if (!isCreds) {
+    
+    Serial.println("> Running blutooth setup device program...");
 
-  // WIFI - Wait until connected
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(100);
-  }
-
-  // WIFI - Display connection details
-  Serial.println("> Connected.");
-  Serial.print(">> Device IP: ");   Serial.println(WiFi.localIP());
-  Serial.print(">> MAC Address:" ); Serial.println(WiFi.macAddress());
-  Serial.print(">> SSID:" );        Serial.println(WiFi.SSID());
-  Serial.print(">> RSSI:" );        Serial.println(WiFi.RSSI());
-  delay(1000);
-
-  // WEB SERVER - Define Routes
-  server.on("/",                       HTTP_GET,  handleRoute_root);
-  server.on("/authentication",         HTTP_POST, handleRoute_authentication);
-  server.on("/authentication/logout",  HTTP_GET,  handleRoute_authentication_logout);
-  server.on("/dashboard/",             HTTP_GET,  handleRoute_dashboard);
-  server.on("/api/identity",           HTTP_GET,  handleRoute_identity);
-  server.on("/api/temperature",        HTTP_GET,  handleRoute_temperature);
-  server.on("/api/pressure",           HTTP_GET,  handleRoute_pressure);
-
-  // WEB SERVER - Define which request headers to collect
-  const char *headers[] = {"Host", "Referer", "Cookie"};
-  size_t headersCount = sizeof(headers) / sizeof(char*);
-  server.collectHeaders(headers, headersCount);
-
-  // WEB SERVER - Begin!
-  server.begin();
-  Serial.println("> API Server Started.");
-  delay(1000);
-
-  // BMP180 - Test component
-  if (!bmp.begin()) {
-    Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
-    Serial.println(">> Hanging.");
+    // Wipe the EEPROM
+    wipeEEPROM(); delay(2000);
+    
+    // Set the credentials and save to EEPROM
+    setWifiCredentials("", "");
+    setHostname("X-SENSOR");
+    delay(2000);
+    
+    // Now ask the user to reboot the device
+    Serial.println("> Reboot, please.");
     while (1) {}
+
+  
+  // Else connect to WIFI and run!
+  } else {
+
+    Serial.println("> Booting...");
+    Serial.print("> SSID NAME: '"); Serial.print(SSIDNAME); Serial.println("'");
+    Serial.print("> SSID PASS: '"); Serial.print(SSIDPASS); Serial.println("'");
+    
+    // WIFI - Setup wifi
+    Serial.print("> Connecting to WiFi");
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect(); delay(100);
+    WiFi.begin(SSIDNAME, SSIDPASS);
+
+    // If no HOSTNAME configured then use default
+    if (!isHostname)
+      strcat(HOSTNAME, "X-SENSOR");
+    WiFi.setHostname(HOSTNAME);
+  
+    // WIFI - Wait until connected
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.print('.');
+      delay(100);
+    }
+  
+    // WIFI - Display connection details
+    Serial.println("Connected.");
+    Serial.print(">> Device IP: ");   Serial.println(WiFi.localIP());
+    Serial.print(">> MAC Address:" ); Serial.println(WiFi.macAddress());
+    Serial.print(">> SSID:" );        Serial.println(WiFi.SSID());
+    Serial.print(">> RSSI:" );        Serial.println(WiFi.RSSI());
+    delay(1000);
+    
+    // WEB SERVER - Define Routes
+    server.on("/",                       HTTP_GET,  handleRoute_root);
+    server.on("/authentication",         HTTP_POST, handleRoute_authentication);
+    server.on("/authentication/logout",  HTTP_GET,  handleRoute_authentication_logout);
+    server.on("/dashboard/",             HTTP_GET,  handleRoute_dashboard);
+    server.on("/system/wipe-eeprom",     HTTP_GET,  handleRoute_system_wipe_eeprom);
+    server.on("/api/identity",           HTTP_GET,  handleRoute_identity);
+    server.on("/api/temperature",        HTTP_GET,  handleRoute_temperature);
+    server.on("/api/pressure",           HTTP_GET,  handleRoute_pressure);
+  
+    // WEB SERVER - Define which request headers you need access to
+    const char *headers[] = {"Host", "Referer", "Cookie"};
+    size_t headersCount = sizeof(headers) / sizeof(char*);
+    server.collectHeaders(headers, headersCount);
+  
+    // WEB SERVER - Begin!
+    server.begin();
+    Serial.println("> API Server Started.");
+    delay(1000);
+  
+    // BMP180 - Test component
+    if (!bmp.begin()) {
+      Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
+      Serial.println(">> Hanging.");
+      while (1) {}
+    }
   }
 }
 
@@ -177,6 +214,9 @@ void handleRoute_dashboard() {
   strcat(msg, "      <p>");
   strcat(msg, "        <a href='/api/temperature'>/api/temperature</a><br>");
   strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
+  strcat(msg, "      </p>");
+  strcat(msg, "      <p>");
+  strcat(msg, "        <a href='/system/wipe-eeprom'>Wipe EEPROM</a><br>");
   strcat(msg, "      </p>");
   strcat(msg, "      <p>");
   strcat(msg, "        <a href='/authentication/logout'>[x] Logout</a><br>");
@@ -344,6 +384,18 @@ void handleRoute_authentication_logout() {
 
 
 /**
+   ROUTE - "/system/wipe-eeprom"
+   @param void
+   @return void
+*/
+void handleRoute_system_wipe_eeprom() {
+  wipeEEPROM(); delay(2000);
+  server.send(200, "text/html", "EEPROM Wiped. Please reboot.");
+}
+
+    
+
+/**
    Set the NoCaching headers for the browser
    @param void
    @return void
@@ -493,19 +545,47 @@ bool checkCookieAuthedBool () {
  * @param void
  * @return void
  */
-void getWiFiCedentials () {
+bool getWiFiCedentials () {
+  int isSSIDNAMEset = EEPROM.read(EEPROM_SSIDNAME_ISSET_LOCATION);
+  int isSSIDPASSset = EEPROM.read(EEPROM_SSIDPASS_ISSET_LOCATION);
+  int digit1, digit2;
 
-  // Get SSID NAME
-  for (int i=EEPROM_SSIDNAME_LOCATION; i<(EEPROM_SSIDNAME_LOCATION+30); i++) {
-    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
-    SSIDNAME[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
-  }
+  // If the ISSET flag is set == 1 in the EEPROM then
+  if (isSSIDNAMEset == 1 && isSSIDPASSset == 1) {
+  
+    // Get SSID NAME
+    for (int i=EEPROM_SSIDNAME_LOCATION; digit1 != 0; i++) {
 
-  // Get SSID PASS
-  for (int i=EEPROM_SSIDPASS_LOCATION; i<(EEPROM_SSIDPASS_LOCATION+30); i++) {
-    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
-    SSIDPASS[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+      // Read EEPROM value
+      digit1 = EEPROM.read(i);
+      
+      // If digit is 0 then skip (0 is end of string)
+      if (digit1 == 0)
+        continue;
+
+      // Put value into the global one char at a time as you read from the EEPROM
+      SSIDNAME[i-EEPROM_SSIDNAME_LOCATION] = eepromNumberToChar(digit1); // Decode the digit to the Char it represents
+    }
+    
+    // Get SSID PASS
+    for (int i=EEPROM_SSIDPASS_LOCATION; digit2 != 0; i++) {
+
+      // Read EEPROM value
+      digit2 = EEPROM.read(i);
+      
+      // If digit is 0 then skip (0 is end of string)
+      if (digit2 == 0)
+        continue;
+
+      // Put value into the global one char at a time as you read from the EEPROM
+      SSIDPASS[i-EEPROM_SSIDPASS_LOCATION] = eepromNumberToChar(digit2); // Decode the digit to the Char it represents
+    }
+
+    return true;
   }
+  
+  // Else, run setup program
+  return false;
 }
 
 
@@ -514,11 +594,109 @@ void getWiFiCedentials () {
  * @param void
  * @return void
  */
-void getHostname () {
-  for (int i=EEPROM_HOSTNAME_LOCATION; i<(EEPROM_HOSTNAME_LOCATION+30); i++) {
-    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
-    HOSTNAME[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+bool getHostname () {
+  int isHostnameSet = EEPROM.read(EEPROM_HOSTNAME_ISSET_LOCATION);
+  int digit;
+  
+  // If the ISSET flag is set == 1 in the EEPROM then
+  if (isHostnameSet == 1) {
+
+    // Read out the HOSTNAME from the EEPROM
+    for (int i=EEPROM_HOSTNAME_LOCATION; digit != 0; i++) {
+
+      // Read EEPROM value
+      digit = EEPROM.read(i);
+      
+      // If digit is 0 then skip (0 is end of string)
+      if (digit == 0)
+        continue;
+      
+      HOSTNAME[i-EEPROM_HOSTNAME_LOCATION] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+    }
+    return true;
   }
+  // Else use default name
+  return false;
+}
+
+
+/**
+ * Sets the SSID Credentials in the EEPROM
+ * @param void
+ * @return void
+ */
+bool setWifiCredentials (char tmpSSID[30], char tmpPASS[30]) {
+  Serial.println("> SAVING WIFI CREDENTIALS...");
+  
+  // WIPE AL SAVED DATA FROM FIELDS in EPPROM
+  for (int i=0; i<30; i++) {
+    EEPROM.write(EEPROM_SSIDNAME_LOCATION+i, 0);
+    EEPROM.write(EEPROM_SSIDPASS_LOCATION+i, 0);
+  }
+  EEPROM.write(EEPROM_SSIDNAME_ISSET_LOCATION, 0);
+  EEPROM.write(EEPROM_SSIDPASS_ISSET_LOCATION, 0);
+  EEPROM.commit();
+  
+  // Set SSID NAME
+  for (int i=0; tmpSSID[i] != '\0'; i++) {
+    EEPROM.write(EEPROM_SSIDNAME_LOCATION+i, eepromCharToNumber(tmpSSID[i]));      // Set the digit in the EEPROM 
+  }
+  
+  // Set SSID PASS
+  for (int i=0; tmpPASS[i] != '\0'; i++) {
+    EEPROM.write(EEPROM_SSIDPASS_LOCATION+i, eepromCharToNumber(tmpPASS[i]));      // Set the digit in the EEPROM
+  }
+
+  // Save the ISSET fields in EEPROM
+  EEPROM.write(EEPROM_SSIDNAME_ISSET_LOCATION, 1);
+  EEPROM.write(EEPROM_SSIDPASS_ISSET_LOCATION, 1);
+  
+  // Commit EEPROM Save!
+  EEPROM.commit();
+  return true;
+}
+
+
+/**
+ * Sets the HOSTNAME in the EEPROM
+ * @param void
+ * @return void
+ */
+bool setHostname (char tmpHOSTNAME[30]) {
+  Serial.println("> SAVING HOSTNAME...");
+  
+  // WIPE AL SAVED DATA FROM FIELDS in EPPROM
+  for (int i=0; i<30; i++) {
+    EEPROM.write(EEPROM_HOSTNAME_LOCATION+i, 0);
+  }
+  EEPROM.write(EEPROM_HOSTNAME_ISSET_LOCATION, 0);
+  EEPROM.commit();
+    
+  // Set hostname
+  for (int i=0; tmpHOSTNAME[i] != '\0'; i++) {
+    EEPROM.write(EEPROM_HOSTNAME_LOCATION+i, eepromCharToNumber(tmpHOSTNAME[i]));      // Set the digit in the EEPROM
+  }
+  
+  // Save the ISSET fields in EEPROM
+  EEPROM.write(EEPROM_HOSTNAME_ISSET_LOCATION, 1);
+  
+  // Commit EEPROM Save!
+  EEPROM.commit();
+  return true;
+}
+
+
+/**
+ * Wipes the entire EEPROM
+ * @param void
+ * @return void
+ */
+void wipeEEPROM () {
+  for (int i=0; i<256; i++) {
+    EEPROM.write(i, 0);
+    EEPROM.write(i, 0);
+  }
+  EEPROM.commit();
 }
 
 
@@ -528,36 +706,21 @@ void getHostname () {
  * @param char inString[30]
  * @return int*
  */
-int * eepromCharToNumber (char inString[30]) {
-  size_t len = strlen(inString);
-  char chars[100] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
-  char selInChar;
+int eepromCharToNumber (char inChar) {
+  char chars[100] = {" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
   char selLibChar;
-  int outPos = 1;  // Start at 1 because the first int before this will be the length of the encoded string
-  int out[30];
   
-  // Loop through chars in the given string in which 
-  // we want to encode into digits
-  for (int i=0; i<len; i++) {
-    selInChar = chars[i];
+  // Now search the library array for that char
+  for (int i=0; i<89; i++) {
+    selLibChar = chars[i];
 
-    // Now search the library array for that char
-    for (int ii=0; ii<88; ii++) {
-      selLibChar = chars[i];
-
-      // If the char given and the char in the library
-      // match, add the library position to the out 
-      // array as a value;
-      if (selInChar == selLibChar) {
-        EncodedString[outPos] = ii;
-        outPos++;  // Increment out position
-      }
+    // If the char given and the char in the library match, add the
+    // library position to the out array as a value;
+    if (inChar == selLibChar) {
+      return i;
     }
   }
-  // Now encode first bit of out array as the length
-  // of the string we've encoded.
-  out[0] = outPos;
-  return out;
+  return 0;
 }
 
 
@@ -568,6 +731,6 @@ int * eepromCharToNumber (char inString[30]) {
  * @return int*
  */
 char eepromNumberToChar (int number) {
-  char chars[100] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
+  char chars[100] = {" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
   return chars[number];
 }

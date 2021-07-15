@@ -8,14 +8,17 @@
 #include "mbedtls/md.h"
 
 // Constants
-#define HOSTNAME "X-SENSOR"
-#define SSIDNAME ""
-#define SSIDPASS ""
 #define APIUSER "x-smart"
 #define APIPASS "fdTE%G54m2dY!g78"
 #define EEPROM_SIZE 255
 
 // Variables
+char HOSTNAME[30] = "X-SENSOR";
+char SSIDNAME[30] = "";
+char SSIDPASS[30] = "";
+int  EEPROM_SSIDNAME_LOCATION = 0;
+int  EEPROM_SSIDPASS_LOCATION = 30;
+int  EEPROM_HOSTNAME_LOCATION = 60;
 String SESSION_COOKIE_KEY = "none";
 String header;
 int EncodedString[30];  // Encoding a string to be stored in EEPROM
@@ -37,7 +40,7 @@ void setup() {
   Serial.println("Serial Started.");
   delay(1000);
 
-  // Initialise the EEPROM Memory
+  // EEPROM - Initialise
   EEPROM.begin(EEPROM_SIZE);
   getWiFiCedentials();
   delay(1000);
@@ -259,11 +262,10 @@ void handleRoute_identity() {
 
   // Define identity
   char msg[255];
-  char identity[25] = HOSTNAME;
 
   // Build content
   strcpy(msg, "{result:{\"ROUTE\":\"identity\",\"status\":\"OK\", \"value\":\"");
-  strcat(msg, identity);
+  strcat(msg, HOSTNAME);
   strcat(msg, "\"}}");
 
   // Send content to client
@@ -484,12 +486,40 @@ bool checkCookieAuthedBool () {
 }
 
 
+/**
+ * Gets the SSID Credentials and Hostname from the EEPROM
+ * @param void
+ * @return void
+ */
 void getWiFiCedentials () {
-  // TODO
+
+  // Get SSID NAME
+  for (int i=EEPROM_SSIDNAME_LOCATION; i<(EEPROM_SSIDNAME_LOCATION+30); i++) {
+    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
+    SSIDNAME[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+  }
+
+  // Get SSID PASS
+  for (int i=EEPROM_SSIDPASS_LOCATION; i<(EEPROM_SSIDPASS_LOCATION+30); i++) {
+    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
+    SSIDPASS[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+  }
+
+  // Get HOSTNAME
+  for (int i=EEPROM_HOSTNAME_LOCATION; i<(EEPROM_HOSTNAME_LOCATION+30); i++) {
+    int digit = EEPROM.read(i);      // Read the digit from the EEPROM
+    HOSTNAME[i] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+  }
 }
 
 
-int * eepromStringTonumbers (char inString[30]) {
+/**
+ * Encodes Chars into Ints for the EEPROM
+ * (EEPROM only stores ints 0-255)
+ * @param char inString[30]
+ * @return int*
+ */
+int * eepromCharToNumber (char inString[30]) {
   size_t len = strlen(inString);
   char chars[100] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
   char selInChar;
@@ -519,4 +549,16 @@ int * eepromStringTonumbers (char inString[30]) {
   // of the string we've encoded.
   out[0] = outPos;
   return out;
+}
+
+
+/**
+ * Decodes Int into Char
+ * (EEPROM only stores ints 0-255)
+ * @param char inString[30]
+ * @return int*
+ */
+char eepromNumberToChar (int number) {
+  char chars[100] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
+  return chars[number];
 }

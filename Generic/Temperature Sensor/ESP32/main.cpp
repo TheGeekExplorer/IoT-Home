@@ -1,21 +1,24 @@
+#include <stdlib.h>
 #include <Wire.h>
-#include <Adafruit_BMP085.h>
+#include <time.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <EEPROM.h>
+#include <Adafruit_BMP085.h>
 #include "mbedtls/md.h"
-#include <time.h>
-#include <stdlib.h>
 
 // Constants
-#define HOSTNAME "X-SENSOR-TEMP1"
+#define HOSTNAME "X-SENSOR"
 #define SSIDNAME ""
 #define SSIDPASS ""
 #define APIUSER "x-smart"
 #define APIPASS "fdTE%G54m2dY!g78"
+#define EEPROM_SIZE 255
 
 // Variables
 String SESSION_COOKIE_KEY = "none";
 String header;
+int EncodedString[30];  // Encoding a string to be stored in EEPROM
 
 // Instantiate Objects / Devices
 WebServer server(80);
@@ -34,7 +37,13 @@ void setup() {
   Serial.println("Serial Started.");
   delay(1000);
 
+  // Initialise the EEPROM Memory
+  EEPROM.begin(EEPROM_SIZE);
+  getWiFiCedentials();
+  delay(1000);
+
   // WIFI - Setup wifi
+  Serial.print("Connecting to WiFi");
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(); delay(100);
   WiFi.setHostname(HOSTNAME);
@@ -48,11 +57,11 @@ void setup() {
   }
 
   // WIFI - Display connection details
-  Serial.println("Connected.");
-  Serial.print("Device IP: ");   Serial.println(WiFi.localIP());
-  Serial.print("MAC Address:" ); Serial.println(WiFi.macAddress());
-  Serial.print("SSID:" );        Serial.println(WiFi.SSID());
-  Serial.print("RSSI:" );        Serial.println(WiFi.RSSI());
+  Serial.println("> Connected.");
+  Serial.print(">> Device IP: ");   Serial.println(WiFi.localIP());
+  Serial.print(">> MAC Address:" ); Serial.println(WiFi.macAddress());
+  Serial.print(">> SSID:" );        Serial.println(WiFi.SSID());
+  Serial.print(">> RSSI:" );        Serial.println(WiFi.RSSI());
   delay(1000);
 
   // WEB SERVER - Define Routes
@@ -71,12 +80,13 @@ void setup() {
 
   // WEB SERVER - Begin!
   server.begin();
-  Serial.println("API Server Started.");
+  Serial.println("> API Server Started.");
   delay(1000);
 
   // BMP180 - Test component
   if (!bmp.begin()) {
-    Serial.println("Could not find a valid BMP085/BMP180 sensor, check wiring!");
+    Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
+    Serial.println(">> Hanging.");
     while (1) {}
   }
 }
@@ -107,7 +117,7 @@ void handleRoute_root() {
   strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#D52E84; }\r\n");
+  strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
@@ -152,7 +162,7 @@ void handleRoute_dashboard() {
   strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#99dd00; } a:visited { color:#D52E84; }\r\n");
+  strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
   strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
   strcat(msg, "    </style>\r\n");
   strcat(msg, "  </head>");
@@ -471,4 +481,42 @@ bool checkCookieAuthedBool () {
   if (cookie_value == SESSION_COOKIE_KEY)
     return true;
   return false;
+}
+
+
+void getWiFiCedentials () {
+  // TODO
+}
+
+
+int * eepromStringTonumbers (char inString[30]) {
+  size_t len = strlen(inString);
+  char chars[100] = {"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@£$%^&*-_=+~#/?>.<,|;:'"};
+  char selInChar;
+  char selLibChar;
+  int outPos = 1;  // Start at 1 because the first int before this will be the length of the encoded string
+  int out[30];
+  
+  // Loop through chars in the given string in which 
+  // we want to encode into digits
+  for (int i=0; i<len; i++) {
+    selInChar = chars[i];
+
+    // Now search the library array for that char
+    for (int ii=0; ii<88; ii++) {
+      selLibChar = chars[i];
+
+      // If the char given and the char in the library
+      // match, add the library position to the out 
+      // array as a value;
+      if (selInChar == selLibChar) {
+        EncodedString[outPos] = ii;
+        outPos++;  // Increment out position
+      }
+    }
+  }
+  // Now encode first bit of out array as the length
+  // of the string we've encoded.
+  out[0] = outPos;
+  return out;
 }

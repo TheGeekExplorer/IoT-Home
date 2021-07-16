@@ -268,8 +268,9 @@ void handleRoute_temperature() {
     char msg[255];
   
     // Read sensor
-    r = readSensor("temperature");
-    sprintf (r1, "%f", r);
+    r = readSensor("temperature");  // Read sensor
+    r = roundf(r * 100) / 100;      // Round to 2 decimal places
+    sprintf (r1, "%f", r);          // Convert to Char Array
   
     // Build content
     strcpy(msg, "{result:{\"ROUTE\":\"temperature\",\"status\":\"OK\", \"value\":\"");
@@ -297,14 +298,15 @@ void handleRoute_temperatureHTML() {
     char r1[10];
   
     // Read sensor
-    r = readSensor("temperature");
-    sprintf (r1, "%f", r);
+    r = readSensor("temperature");  // Read sensor
+    r = roundf(r * 100) / 100;      // Round to 2 decimal places
+    sprintf (r1, "%f", r);          // Convert to Char Array
   
     // Else, build content for page
     char msg[2000];
     strcpy(msg, "<html>");
     strcat(msg, "  <head>");
-    strcat(msg, "    <title>  strcat(msg, HOSTNAME);   - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <title>");  strcat(msg, HOSTNAME); strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
     strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
@@ -316,10 +318,10 @@ void handleRoute_temperatureHTML() {
     strcat(msg, "  </head>");
     strcat(msg, "  <body>");
     strcat(msg, "    <main>");
-    strcat(msg, "      <h1>Set WIFI Details</h1>\r\n");
+    strcat(msg, "      <h1>Temperature</h1>\r\n");
     strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
-    strcat(msg, "            <h1>&raquo;|SUN|&laquo;</h1>\r\n");
+    strcat(msg, "            <h1>&laquo;ICON&raquo;</h1>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
     strcat(msg, "            <h1>"); strcat(msg, r1); strcat(msg, " C</h1>\r\n");
@@ -354,8 +356,9 @@ void handleRoute_pressure() {
     char msg[255];
   
     // Read sensor
-    r = readSensor("pressure");
-    sprintf (r1, "%f", r);
+    r = readSensor("pressure");  // Read sensor
+    r = roundf(r * 100) / 100;      // Round to 2 decimal places
+    sprintf (r1, "%f", r);          // Convert to Char Array
   
     // Build content
     strcpy(msg, "{result:{\"ROUTE\":\"pressure\",\"status\":\"OK\", \"value\":\"");
@@ -383,14 +386,15 @@ void handleRoute_pressureHTML() {
     char r1[10];
   
     // Read sensor
-    r = readSensor("pressure");
-    sprintf (r1, "%f", r);
+    r = readSensor("pressure");  // Read sensor
+    r = roundf(r * 100) / 100;   // Round to 2 decimal places
+    sprintf (r1, "%f", r);       // Convert to Char Array
   
     // Else, build content for page
     char msg[2000];
     strcpy(msg, "<html>");
     strcat(msg, "  <head>");
-    strcat(msg, "    <title>  strcat(msg, HOSTNAME);   - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
     strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
@@ -402,10 +406,10 @@ void handleRoute_pressureHTML() {
     strcat(msg, "  </head>");
     strcat(msg, "  <body>");
     strcat(msg, "    <main>");
-    strcat(msg, "      <h1>Set WIFI Details</h1>\r\n");
+    strcat(msg, "      <h1>Air Pressure</h1>\r\n");
     strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
-    strcat(msg, "            <h1>&raquo;|SUN|&laquo;</h1>\r\n");
+    strcat(msg, "            <h1>&laquo;ICON&raquo;</h1>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
     strcat(msg, "            <h1>"); strcat(msg, r1); strcat(msg, " PA</h1>\r\n");

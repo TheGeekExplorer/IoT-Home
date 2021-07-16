@@ -66,7 +66,7 @@ void setup() {
     // Set the credentials and save to EEPROM because
     // there is no other way to set this at the moment.
     setWifiCredentials("", "");
-    setHostname("X-SENSOR-STAIRS");
+    setHostname("X-SENSOR");
     delay(2000);
     
     // Now ask the user to reboot the device
@@ -333,6 +333,8 @@ void handleRoute_identity() {
    @return char
 */
 float readSensor (String sensor) {
+  checkCookieAuthed();
+  
   float r = 0.00;
   char r1[10];
 
@@ -358,30 +360,6 @@ float readSensor (String sensor) {
 
 
 /**
-   ROUTE - "/authentication"
-   @param void
-   @return void
-*/
-void handleRoute_authentication() {
-  String username = server.arg("username");
-  String password = server.arg("password");
-
-  // Check credentials are correct, or has cookie, then login
-  if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
-    createSession();
-    server.sendHeader(F("Location"), F("/dashboard"));
-    server.send(302, "text/html", "Authorised.");
-
-    // Else redirect back to login page
-  } else {
-    destroySession();
-    server.sendHeader(F("Location"), F("/?status=no"));
-    server.send(302, "text/html", "Not Authorised.");
-  }
-}
-
-
-/**
    ROUTE - "/authentication/logout"
    @param void
    @return void
@@ -399,6 +377,8 @@ void handleRoute_authentication_logout() {
    @return void
 */
 void handleRoute_newWifiDetails() {
+  checkCookieAuthed();
+  
   char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
@@ -415,6 +395,9 @@ void handleRoute_newWifiDetails() {
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
   strcat(msg, "  <h1>Set WIFI Details</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <b>Current Details:</b> '"); strcat(msg, SSIDNAME); strcat(msg, "' / '"); strcat(msg, SSIDPASS); strcat(msg, "'.");
+  strcat(msg, "  </p>");
   strcat(msg, "  <p>");
   strcat(msg, "    <form action=\"/system/set-wifi/save\" method=\"POST\">");
   strcat(msg, "      <p>SSID Name</p>");
@@ -444,6 +427,8 @@ void handleRoute_newWifiDetails() {
    @return void
 */
 void handleRoute_newWifiDetails_Save() {
+  checkCookieAuthed();
+  
   char msgResponse[255];
   String inSSID     = server.arg("ssid");
   String inPASSWORD = server.arg("password");
@@ -505,6 +490,8 @@ void handleRoute_newWifiDetails_Save() {
    @return void
 */
 void handleRoute_newHostname() {
+  checkCookieAuthed();
+  
   char msg[2000];
   strcpy(msg, "<html>");
   strcat(msg, "  <head>");
@@ -521,6 +508,9 @@ void handleRoute_newHostname() {
   strcat(msg, "  <body>");
   strcat(msg, "    <main>");
   strcat(msg, "  <h1>Set Hostname</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    Current Details: '"); strcat(msg, HOSTNAME); strcat(msg, "'.");
+  strcat(msg, "  </p>");
   strcat(msg, "  <p>");
   strcat(msg, "    <form action=\"/system/set-hostname/save\" method=\"POST\">");
   strcat(msg, "      <p>HOSTNAME</p>");
@@ -548,6 +538,8 @@ void handleRoute_newHostname() {
    @return void
 */
 void handleRoute_newHostname_Save() {
+  checkCookieAuthed();
+  
   String inHOSTNAME = server.arg("hostname");
   char msgResponse[255];
   
@@ -606,8 +598,34 @@ void handleRoute_newHostname_Save() {
    @return void
 */
 void handleRoute_system_wipe_eeprom() {
+  checkCookieAuthed();
+  
   wipeEEPROM(); delay(2000);
   server.send(200, "text/html", "EEPROM Wiped. Please reboot.");
+}
+
+
+/**
+   ROUTE - "/authentication"
+   @param void
+   @return void
+*/
+void handleRoute_authentication() {
+  String username = server.arg("username");
+  String password = server.arg("password");
+
+  // Check credentials are correct, or has cookie, then login
+  if ((username == APIUSER && password == APIPASS) || checkCookieAuthedBool()) {
+    createSession();
+    server.sendHeader(F("Location"), F("/dashboard"));
+    server.send(302, "text/html", "Authorised.");
+
+    // Else redirect back to login page
+  } else {
+    destroySession();
+    server.sendHeader(F("Location"), F("/?status=no"));
+    server.send(302, "text/html", "Not Authorised.");
+  }
 }
 
     

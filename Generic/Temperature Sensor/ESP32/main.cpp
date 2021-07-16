@@ -62,9 +62,11 @@ void setup() {
     // Wipe the EEPROM
     wipeEEPROM(); delay(2000);
     
-    // Set the credentials and save to EEPROM
+    // TEMPORARY WHILE DEVELOPING!
+    // Set the credentials and save to EEPROM because
+    // there is no other way to set this at the moment.
     setWifiCredentials("", "");
-    setHostname("X-SENSOR");
+    setHostname("X-SENSOR-STAIRS");
     delay(2000);
     
     // Now ask the user to reboot the device
@@ -78,12 +80,13 @@ void setup() {
     Serial.println("> Booting...");
     Serial.print("> SSID NAME: '"); Serial.print(SSIDNAME); Serial.println("'");
     Serial.print("> SSID PASS: '"); Serial.print(SSIDPASS); Serial.println("'");
+    Serial.print("> HOSTNAME:  '"); Serial.print(HOSTNAME); Serial.println("'");
     
     // WIFI - Setup wifi
     Serial.print("> Connecting to WiFi");
     WiFi.mode(WIFI_STA);
     WiFi.disconnect(); delay(100);
-    WiFi.begin(SSIDNAME, SSIDPASS);
+    WiFi.begin(SSIDNAME, SSIDPASS); WiFi.setSleep(false);
 
     // If no HOSTNAME configured then use default
     if (!isHostname)
@@ -105,14 +108,18 @@ void setup() {
     delay(1000);
     
     // WEB SERVER - Define Routes
-    server.on("/",                       HTTP_GET,  handleRoute_root);
-    server.on("/authentication",         HTTP_POST, handleRoute_authentication);
-    server.on("/authentication/logout",  HTTP_GET,  handleRoute_authentication_logout);
-    server.on("/dashboard/",             HTTP_GET,  handleRoute_dashboard);
-    server.on("/system/wipe-eeprom",     HTTP_GET,  handleRoute_system_wipe_eeprom);
-    server.on("/api/identity",           HTTP_GET,  handleRoute_identity);
-    server.on("/api/temperature",        HTTP_GET,  handleRoute_temperature);
-    server.on("/api/pressure",           HTTP_GET,  handleRoute_pressure);
+    server.on("/",                            HTTP_GET,  handleRoute_root);
+    server.on("/authentication/",             HTTP_POST, handleRoute_authentication);
+    server.on("/authentication/logout/",      HTTP_GET,  handleRoute_authentication_logout);
+    server.on("/dashboard/",                  HTTP_GET,  handleRoute_dashboard);
+    server.on("/system/wipe-eeprom/",         HTTP_GET,  handleRoute_system_wipe_eeprom);
+    server.on("/wifi/new-wifi-details/",      HTTP_GET,  handleRoute_newWifiDetails);
+    server.on("/wifi/new-wifi-details/save/", HTTP_POST, handleRoute_newWifiDetails_Save);
+    server.on("/hostname/",                   HTTP_GET,  handleRoute_newHostname);
+    server.on("/wifi/new-wifi-details/save/", HTTP_POST, handleRoute_newHostname_Save);
+    server.on("/api/identity.json",           HTTP_GET,  handleRoute_identity);
+    server.on("/api/temperature.json",        HTTP_GET,  handleRoute_temperature);
+    server.on("/api/pressure.json",           HTTP_GET,  handleRoute_pressure);
   
     // WEB SERVER - Define which request headers you need access to
     const char *headers[] = {"Host", "Referer", "Cookie"};
@@ -154,38 +161,19 @@ void loop() {
 */
 void handleRoute_root() {
   char msg[2000];
-  strcpy(msg, "<html>");
-  strcat(msg, "  <head>");
-  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
-  strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
-  strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
-  strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
-  strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
-  strcat(msg, "    </style>\r\n");
-  strcat(msg, "  </head>");
-  strcat(msg, "  <body>");
-  strcat(msg, "    <main>");
-  strcat(msg, "      <h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
-  strcat(msg, "      <p>");
-  strcat(msg, "        <form action=\"/authentication\" method=\"POST\">");
-  strcat(msg, "          <p>Username</p>");
-  strcat(msg, "          <input type=\"text\" name=\"username\"><br>");
-  strcat(msg, "          <p>Password</p>");
-  strcat(msg, "          <input type=\"password\" name=\"password\"><br><br>");
-  strcat(msg, "          <input type=\"submit\" value=\"Login!\"><br>");
-  strcat(msg, "        </form>");
-  strcat(msg, "      </p>");
-  strcat(msg, "    </main>");
-  strcat(msg, "  </body>");
-  strcat(msg, "</html>");
+  strcpy(msg, "<h1>");  strcat(msg, HOSTNAME);  strcat(msg, " - LOGIN</h1>\r\n");
+  strcat(msg, "<p>");
+  strcat(msg, "  <form action=\"/authentication/\" method=\"POST\">");
+  strcat(msg, "    <p>Username</p>");
+  strcat(msg, "    <input type=\"text\" name=\"username\"><br>");
+  strcat(msg, "    <p>Password</p>");
+  strcat(msg, "    <input type=\"password\" name=\"password\"><br><br>");
+  strcat(msg, "    <input type=\"submit\" value=\"Login!\"><br>");
+  strcat(msg, "  </form>");
+  strcat(msg, "</p>");
 
-  // Send content to client
-  setHeaders_NoCache();
-  setHeaders_CrossOrigin();
-  server.send(200, "text/html", msg);
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
 }
 
 
@@ -199,44 +187,160 @@ void handleRoute_dashboard() {
 
   // Else, build content for page
   char msg[2000];
-  strcpy(msg, "<html>");
-  strcat(msg, "  <head>");
-  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
-  strcat(msg, "    <style type=\"text/css\">\r\n");
-  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
-  strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
-  strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-  strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
-  strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
-  strcat(msg, "    </style>\r\n");
-  strcat(msg, "  </head>");
-  strcat(msg, "  <body>");
-  strcat(msg, "    <main>");
-  strcat(msg, "      <h1>DASHBOARD<h1>");
-  strcat(msg, "      <p>");
-  strcat(msg, "        <a href='/api/temperature'>/api/temperature</a><br>");
-  strcat(msg, "        <a href='/api/pressure'>/api/pressure</a><br>");
-  strcat(msg, "      </p>");
-  strcat(msg, "      <p>");
-  strcat(msg, "        <a href='/system/wipe-eeprom'>Wipe EEPROM</a><br>");
-  strcat(msg, "      </p>");
-  strcat(msg, "      <p>");
-  strcat(msg, "        <a href='/authentication/logout'>[x] Logout</a><br>");
-  strcat(msg, "      </p>");
-  strcat(msg, "    </main>");
-  strcat(msg, "  </body>");
-  strcat(msg, "</html>");
+  strcpy(msg, "<main>");
+  strcat(msg, "  <h1>DASHBOARD<h1>");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <a href='/api/temperature.json'>/api/temperature.json</a><br>");
+  strcat(msg, "    <a href='/api/pressure.json'>/api/pressure.json</a><br>");
+  strcat(msg, "  </p>");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <a href='/system/wipe-eeprom/'>Wipe EEPROM</a><br>");
+  strcat(msg, "  </p>");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <a href='/authentication/logout/'>[x] Logout</a><br>");
+  strcat(msg, "  </p>");
+  strcat(msg, "</main>");
 
-  // Send content to client
-  setHeaders_NoCache();
-  setHeaders_CrossOrigin();
-  server.send(200, "text/html", msg);
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
 }
 
 
 /**
-   ROUTE - "/api/temperature"
+   ROUTE - "/wifi/new-wifi-details"
+   @param void
+   @return void
+*/
+void handleRoute_newWifiDetails() {
+  char msg[1000];
+  strcpy(msg, "<main>");
+  strcat(msg, "  <h1>Set WIFI Details</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <form action=\"/wifi/save/\" method=\"POST\">");
+  strcat(msg, "      <p>SSID Name</p>");
+  strcat(msg, "      <input type=\"text\" name=\"ssid\"><br>");
+  strcat(msg, "      <p>SSID Password</p>");
+  strcat(msg, "      <input type=\"password\" name=\"password\"><br><br>");
+  strcat(msg, "      <input type=\"submit\" value=\"Save!\"><br>");
+  strcat(msg, "    </form>");
+  strcat(msg, "  </p>");
+  strcat(msg, "</main>");
+
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
+}
+
+
+/**
+   ROUTE - "/wifi/new-wifi-details/save/"
+   @param void
+   @return void
+*/
+void handleRoute_newWifiDetails_Save() {
+  char msgResponse[255];
+  String inSSID     = server.arg("ssid");
+  String inPASSWORD = server.arg("password");
+  
+  // Check if set then save
+  if (inSSID == "" || inPASSWORD == "") {
+    strcat(msgResponse, "Details not saved because at least one of them was not provided.");
+  
+  // Save it
+  } else {
+
+    // Convert to char array
+    char inSSIDc[30];
+    char inPASSWORDc[30];
+    strcpy(inSSIDc, inSSID.c_str());
+    strcpy(inPASSWORDc, inPASSWORD.c_str());
+
+    // Save details
+    setWifiCredentials(inSSIDc, inPASSWORDc);
+    strcat(msgResponse, "Saved.");
+  }
+  
+  char msg[1000];
+  strcpy(msg, "<main>");
+  strcat(msg, "  <h1>Set WIFI Details</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    "); strcat(msg, msgResponse);
+  strcat(msg, "  </p>");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <a href='/dashboard/'>[x] Back</a><br>");
+  strcat(msg, "  </p>");
+  strcat(msg, "</main>");
+
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
+}
+
+
+/**
+   ROUTE - "/wifi/new-hostname/"
+   @param void
+   @return void
+*/
+void handleRoute_newHostname() {
+  char msg[1000];
+  strcpy(msg, "<main>");
+  strcat(msg, "  <h1>Set Hostname</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <form action=\"/hostname/save/\" method=\"POST\">");
+  strcat(msg, "      <p>HOSTNAME</p>");
+  strcat(msg, "      <input type=\"text\" name=\"hostname\"><br>");
+  strcat(msg, "      <input type=\"submit\" value=\"Save!\"><br>");
+  strcat(msg, "    </form>");
+  strcat(msg, "  </p>");
+  strcat(msg, "</main>");
+
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
+}
+
+
+/**
+   ROUTE - "/wifi/hostname/save/"
+   @param void
+   @return void
+*/
+void handleRoute_newHostname_Save() {
+  String inHOSTNAME = server.arg("hostname");
+  char msgResponse[255];
+  
+  // Check if set then save
+  if (inHOSTNAME == "") {
+    strcat(msgResponse, "Details not saved because at least one of them was not provided.");
+  
+  // Save it
+  } else {
+
+    // Covert to char array
+    char inHOSTNAMEc[30];
+    strcpy(inHOSTNAMEc, inHOSTNAME.c_str());
+
+    // Set the hostname
+    setHostname(inHOSTNAMEc);
+    strcat(msgResponse, "Saved.");
+  }
+  
+  char msg[1000];
+  strcpy(msg, "<main>");
+  strcat(msg, "  <h1>Set Hostname</h1>\r\n");
+  strcat(msg, "  <p>");
+  strcat(msg, "    "); strcat(msg, msgResponse);
+  strcat(msg, "  </p>");
+  strcat(msg, "  <p>");
+  strcat(msg, "    <a href='/dashboard/'>[x] Back</a><br>");
+  strcat(msg, "  </p>");
+  strcat(msg, "</main>");
+
+  // Respond to Client with template + content
+  handleRoute_sendOK(msg);
+}
+
+
+/**
+   ROUTE - "/api/temperature.json"
    @param void
    @return void
 */
@@ -265,7 +369,7 @@ void handleRoute_temperature() {
 
 
 /**
-   ROUTE - "/api/pressure"
+   ROUTE - "/api/pressure.json"
    @param void
    @return void
 */
@@ -293,9 +397,8 @@ void handleRoute_pressure() {
 }
 
 
-
 /**
-   ROUTE - "/api/identity"
+   ROUTE - "/api/identity.json"
    Exists so that it can be identifed on the network because
    we cannot rely on the IP address as it changes.
    @param void
@@ -316,6 +419,7 @@ void handleRoute_identity() {
   // Send content to client
   server.send(200, "application/json", msg);
 }
+
 
 /**
    Reas the sensor and return the value
@@ -345,6 +449,39 @@ float readSensor (String sensor) {
     delay(50);
   }
   return r;
+}
+
+
+/**
+   TEMPLATE -- SENDS RESPONSE TO CLIENT
+   @param void
+   @return void
+*/
+void handleRoute_sendOK (char body[2000]) {
+  char msg[2000];
+  strcpy(msg, "<html>");
+  strcat(msg, "  <head>");
+  strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+  strcat(msg, "    <style type=\"text/css\">\r\n");
+  strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+  strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+  strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+  strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+  strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+  strcat(msg, "    </style>\r\n");
+  strcat(msg, "  </head>");
+  strcat(msg, "  <body>");
+  strcat(msg, "    <main>");
+  strcat(msg, "      "); strcat(msg, body);
+  strcat(msg, "    </main>");
+  strcat(msg, "  </body>");
+  strcat(msg, "</html>");
+
+  // Send content to client
+  setHeaders_NoCache();
+  setHeaders_CrossOrigin();
+  server.send(200, "text/html", msg);
 }
 
 

@@ -166,7 +166,7 @@ void handleRoute_root() {
   strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
   strcat(msg, "    <style type=\"text/css\">\r\n");
   strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+  strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
   strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
   strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
   strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
@@ -211,7 +211,7 @@ void handleRoute_dashboard() {
     strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
     strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
     strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
     strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
@@ -355,7 +355,7 @@ void handleRoute_newWifiDetails() {
     strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
     strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
     strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
     strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
@@ -428,7 +428,7 @@ void handleRoute_newWifiDetails_Save() {
     strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
     strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
     strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
     strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
@@ -470,7 +470,7 @@ void handleRoute_newHostname() {
     strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
     strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
     strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
     strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
@@ -538,7 +538,7 @@ void handleRoute_newHostname_Save() {
     strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
     strcat(msg, "    <style type=\"text/css\">\r\n");
     strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 60px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 30px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
     strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
     strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
     strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");

@@ -120,6 +120,8 @@ void setup() {
     server.on("/api/identity.json",          HTTP_GET,  handleRoute_identity);
     server.on("/api/temperature.json",       HTTP_GET,  handleRoute_temperature);
     server.on("/api/pressure.json",          HTTP_GET,  handleRoute_pressure);
+    server.on("/weather/temperature",        HTTP_GET,  handleRoute_temperatureHTML);
+    server.on("/weather/pressure",           HTTP_GET,  handleRoute_pressureHTML);
   
     // WEB SERVER - Define which request headers you need access to
     const char *headers[] = {"Host", "Referer", "Cookie"};
@@ -221,10 +223,17 @@ void handleRoute_dashboard() {
     strcat(msg, "  <body>");
     strcat(msg, "    <main>");
     strcat(msg, "  <h1>DASHBOARD<h1>");
+    strcat(msg, "  <h3>Webapp Pages<h3>");
+    strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/weather/temperature'>Temperature</a><br>");
+    strcat(msg, "    <a href='/weather/pressure'>Pressure</a><br>");
+    strcat(msg, "  </p>");
+    strcat(msg, "  <h3>API Endpoints<h3>");
     strcat(msg, "  <p>");
     strcat(msg, "    <a href='/api/temperature.json'>/api/temperature.json</a><br>");
     strcat(msg, "    <a href='/api/pressure.json'>/api/pressure.json</a><br>");
     strcat(msg, "  </p>");
+    strcat(msg, "  <h3>System<h3>");
     strcat(msg, "  <p>");
     strcat(msg, "    <a href='/system/set-wifi'>Set new Wifi Details</a><br>");
     strcat(msg, "    <a href='/system/set-hostname'>Set new Hostname</a><br>");
@@ -276,6 +285,62 @@ void handleRoute_temperature() {
 
 
 /**
+   ROUTE - "/weather/temperature"
+   @param void
+   @return void
+*/
+void handleRoute_temperatureHTML() {
+  if (checkCookieAuthed()) {
+  
+    // Define variables
+    float r = 0.00;
+    char r1[10];
+  
+    // Read sensor
+    r = readSensor("temperature");
+    sprintf (r1, "%f", r);
+  
+    // Else, build content for page
+    char msg[2000];
+    strcpy(msg, "<html>");
+    strcat(msg, "  <head>");
+    strcat(msg, "    <title>  strcat(msg, HOSTNAME);   - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <style type=\"text/css\">\r\n");
+    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "    </style>\r\n");
+    strcat(msg, "  </head>");
+    strcat(msg, "  <body>");
+    strcat(msg, "    <main>");
+    strcat(msg, "      <h1>Set WIFI Details</h1>\r\n");
+    strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h1>&raquo;|SUN|&laquo;</h1>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h1>"); strcat(msg, r1); strcat(msg, " C</h1>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "      </div>\r\n");
+    strcat(msg, "      <p>");
+    strcat(msg, "        <a href='/dashboard'>[x] Back</a><br>");
+    strcat(msg, "      </p>");
+    strcat(msg, "    </main>");
+    strcat(msg, "  </body>");
+    strcat(msg, "</html>");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  }
+}
+
+
+/**
    ROUTE - "/api/pressure.json"
    @param void
    @return void
@@ -301,6 +366,62 @@ void handleRoute_pressure() {
     setHeaders_NoCache();
     setHeaders_CrossOrigin();
     server.send(200, "application/json", msg);
+  }
+}
+
+
+/**
+   ROUTE - "/weather/pressure"
+   @param void
+   @return void
+*/
+void handleRoute_pressureHTML() {
+  if (checkCookieAuthed()) {
+  
+    // Define variables
+    float r = 0.00;
+    char r1[10];
+  
+    // Read sensor
+    r = readSensor("pressure");
+    sprintf (r1, "%f", r);
+  
+    // Else, build content for page
+    char msg[2000];
+    strcpy(msg, "<html>");
+    strcat(msg, "  <head>");
+    strcat(msg, "    <title>  strcat(msg, HOSTNAME);   - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <style type=\"text/css\">\r\n");
+    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "    </style>\r\n");
+    strcat(msg, "  </head>");
+    strcat(msg, "  <body>");
+    strcat(msg, "    <main>");
+    strcat(msg, "      <h1>Set WIFI Details</h1>\r\n");
+    strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h1>&raquo;|SUN|&laquo;</h1>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h1>"); strcat(msg, r1); strcat(msg, " PA</h1>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "      </div>\r\n");
+    strcat(msg, "      <p>");
+    strcat(msg, "        <a href='/dashboard'>[x] Back</a><br>");
+    strcat(msg, "      </p>");
+    strcat(msg, "    </main>");
+    strcat(msg, "  </body>");
+    strcat(msg, "</html>");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
   }
 }
 

@@ -9,25 +9,29 @@
 
 // API Config
 char APIUSER[20]  = "x-smart";
-char APIPASS[20]  = "fdTE%G54m2dY!g78";
+char APIPASS[20]  = "password";
 
 // WiFi Config Variables
 char SSIDNAME[30];
 char SSIDPASS[30];
 char HOSTNAME[30];
+char MODE[1];
 
 // EEPROM Config
 #define EEPROM_SIZE 255
-int  EEPROM_SSIDNAME_LOCATION = 1;
-int  EEPROM_SSIDPASS_LOCATION = 36;
-int  EEPROM_HOSTNAME_LOCATION = 71;
+int  EEPROM_SSIDNAME_LOCATION       = 1;
+int  EEPROM_SSIDPASS_LOCATION       = 36;
+int  EEPROM_HOSTNAME_LOCATION       = 71;
+int  EEPROM_MODE_LOCATION           = 120;
 int  EEPROM_SSIDNAME_ISSET_LOCATION = 111;
 int  EEPROM_SSIDPASS_ISSET_LOCATION = 113;
 int  EEPROM_HOSTNAME_ISSET_LOCATION = 115;
+int  EEPROM_MODE_ISSET_LOCATION     = 116;
 
 // Other Variables
 String SESSION_COOKIE_KEY = "none";
 String header;
+int relayOnePin = 26;
 
 // Instantiate Objects / Devices
 WebServer server(80);
@@ -62,28 +66,28 @@ void setup() {
     // Wipe the EEPROM
     wipeEEPROM(); delay(2000);
     
-    // TEMPORARY WHILE DEVELOPING!
-    // Set the credentials and save to EEPROM because
-    // there is no other way to set this at the moment.
-    setWifiCredentials("", "");
-    setHostname("X-SENSOR");
-    delay(2000);
+    // Start an AP so you can connect to it to setup the device
+    char apSSIDNAME[30];
+    char apSSIDPASS[30];
+    strcat(apSSIDNAME, "IoT Smart Home");
+    strcat(apSSIDPASS, "password");
     
-    // Now ask the user to reboot the device
-    Serial.println("> Reboot, please.");
-    while (1) {}
-
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(apSSIDNAME, apSSIDPASS);
+    Serial.print("> SSID NAME: '"); Serial.print(apSSIDNAME); Serial.println("'");
+    Serial.print("> SSID PASS: '"); Serial.print(apSSIDPASS); Serial.println("'");
+    delay(3000);
   
   // Else connect to WIFI and run!
   } else {
 
     Serial.println("> Booting...");
-    Serial.print("> SSID NAME: '"); Serial.print(SSIDNAME); Serial.println("'");
-    Serial.print("> SSID PASS: '"); Serial.print(SSIDPASS); Serial.println("'");
-    Serial.print("> HOSTNAME:  '"); Serial.print(HOSTNAME); Serial.println("'");
     
     // WIFI - Setup wifi
     Serial.print("> Connecting to WiFi");
+    Serial.print("> SSID NAME: '"); Serial.print(SSIDNAME); Serial.println("'");
+    Serial.print("> SSID PASS: '"); Serial.print(SSIDPASS); Serial.println("'");
+    Serial.print("> HOSTNAME:  '"); Serial.print(HOSTNAME); Serial.println("'");
     WiFi.mode(WIFI_STA);
     WiFi.disconnect(); delay(100);
     WiFi.begin(SSIDNAME, SSIDPASS); WiFi.setSleep(false);
@@ -101,48 +105,59 @@ void setup() {
   
     // WIFI - Display connection details
     Serial.println("Connected.");
-    Serial.print(">> Device IP: ");   Serial.println(WiFi.localIP());
-    Serial.print(">> MAC Address:" ); Serial.println(WiFi.macAddress());
-    Serial.print(">> SSID:" );        Serial.println(WiFi.SSID());
-    Serial.print(">> RSSI:" );        Serial.println(WiFi.RSSI());
-    delay(1000);
-    
-    // WEB SERVER - Define Routes
-    server.on("/",                           HTTP_GET,  handleRoute_root);
-    server.on("/authentication",             HTTP_POST, handleRoute_authentication);
-    server.on("/authentication/logout",      HTTP_GET,  handleRoute_authentication_logout);
-    server.on("/dashboard",                  HTTP_GET,  handleRoute_dashboard);
-    server.on("/system/wipe-eeprom",         HTTP_GET,  handleRoute_system_wipe_eeprom);
-    server.on("/system/set-wifi",            HTTP_GET,  handleRoute_newWifiDetails);
-    server.on("/system/set-wifi/save",       HTTP_POST, handleRoute_newWifiDetails_Save);
-    server.on("/system/set-hostname",        HTTP_GET,  handleRoute_newHostname);
-    server.on("/system/set-hostname/save",   HTTP_POST, handleRoute_newHostname_Save);
-    server.on("/api/identity.json",          HTTP_GET,  handleRoute_identity);
-    server.on("/api/temperature.json",       HTTP_GET,  handleRoute_temperature);
-    server.on("/api/pressure.json",          HTTP_GET,  handleRoute_pressure);
-    server.on("/weather/temperature",        HTTP_GET,  handleRoute_temperatureHTML);
-    server.on("/weather/pressure",           HTTP_GET,  handleRoute_pressureHTML);
-  
-    // WEB SERVER - Define which request headers you need access to
-    const char *headers[] = {"Host", "Referer", "Cookie"};
-    size_t headersCount = sizeof(headers) / sizeof(char*);
-    server.collectHeaders(headers, headersCount);
-  
-    // WEB SERVER - Begin!
-    server.begin();
-    Serial.println("> API Server Started.");
-    delay(1000);
-  
-    // BMP180 - Test component
-    if (!bmp.begin()) {
-      Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
-      Serial.println(">> Hanging.");
-      while (1) {}
-    }
 
-    // Completed boot
-    Serial.println("> Boot Completed. Waiting for HTTP Requests.");
+
   }
+  
+  Serial.print(">> Device IP: ");   Serial.println(WiFi.localIP());
+  Serial.print(">> MAC Address:" ); Serial.println(WiFi.macAddress());
+  Serial.print(">> SSID:" );        Serial.println(WiFi.SSID());
+  Serial.print(">> RSSI:" );        Serial.println(WiFi.RSSI());
+  delay(1000);
+  
+  // WEB SERVER - Define Routes
+  server.on("/",                           HTTP_GET,  handleRoute_root);
+  server.on("/authentication",             HTTP_POST, handleRoute_authentication);
+  server.on("/authentication/logout",      HTTP_GET,  handleRoute_authentication_logout);
+  server.on("/dashboard",                  HTTP_GET,  handleRoute_dashboard);
+  server.on("/system/wipe-eeprom",         HTTP_GET,  handleRoute_system_wipe_eeprom);
+  server.on("/system/set-mode",            HTTP_GET,  handleRoute_newMode);
+  server.on("/system/set-mode/save",       HTTP_POST, handleRoute_newMode_Save);
+  server.on("/system/set-wifi",            HTTP_GET,  handleRoute_newWifiDetails);
+  server.on("/system/set-wifi/save",       HTTP_POST, handleRoute_newWifiDetails_Save);
+  server.on("/system/set-hostname",        HTTP_GET,  handleRoute_newHostname);
+  server.on("/system/set-hostname/save",   HTTP_POST, handleRoute_newHostname_Save);
+  server.on("/api/identity.json",          HTTP_GET,  handleRoute_identity);
+  server.on("/api/temperature.json",       HTTP_GET,  handleRoute_temperature);
+  server.on("/api/pressure.json",          HTTP_GET,  handleRoute_pressure);
+  server.on("/weather/temperature",        HTTP_GET,  handleRoute_temperatureHTML);
+  server.on("/weather/pressure",           HTTP_GET,  handleRoute_pressureHTML);
+  server.on("/leds/relay-on",              HTTP_GET,  handleRoute_relay_on);
+  server.on("/leds/relay-off",             HTTP_GET,  handleRoute_relay_off);
+  
+  // WEB SERVER - Define which request headers you need access to
+  const char *headers[] = {"Host", "Referer", "Cookie"};
+  size_t headersCount = sizeof(headers) / sizeof(char*);
+  server.collectHeaders(headers, headersCount);
+  
+  // WEB SERVER - Begin!
+  server.begin();
+  Serial.println("> API Server Started.");
+  delay(1000);
+  
+  // BMP180 - Test component
+  //if (!bmp.begin()) {
+  //  Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
+  //  Serial.println(">> Hanging.");
+  //  while (1) {}
+  //}
+
+  // Setup RELAY
+  pinMode(relayOnePin, OUTPUT);
+  digitalWrite(relayOnePin, LOW);
+  
+  // Completed boot
+  Serial.println("> Boot Completed. Waiting for HTTP Requests.");
 }
 
 
@@ -225,16 +240,20 @@ void handleRoute_dashboard() {
     strcat(msg, "  <h1>DASHBOARD<h1>");
     strcat(msg, "  <h3>Webapp Pages<h3>");
     strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/leds/relay-on'>LEDS ON</a> / <a href='/leds/relay-off'>OFF</a><br>");
+    strcat(msg, "    <a href='/weather/light'>Light</a><br>");
     strcat(msg, "    <a href='/weather/temperature'>Temperature</a><br>");
     strcat(msg, "    <a href='/weather/pressure'>Pressure</a><br>");
     strcat(msg, "  </p>");
     strcat(msg, "  <h3>API Endpoints<h3>");
     strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/api/light.json'>/api/light.json</a><br>");
     strcat(msg, "    <a href='/api/temperature.json'>/api/temperature.json</a><br>");
     strcat(msg, "    <a href='/api/pressure.json'>/api/pressure.json</a><br>");
     strcat(msg, "  </p>");
     strcat(msg, "  <h3>System<h3>");
     strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/system/set-mode'>Set Device Mode</a><br>");
     strcat(msg, "    <a href='/system/set-wifi'>Set new Wifi Details</a><br>");
     strcat(msg, "    <a href='/system/set-hostname'>Set new Hostname</a><br>");
     strcat(msg, "    <a href='/system/wipe-eeprom'>Wipe EEPROM</a><br>");
@@ -251,6 +270,48 @@ void handleRoute_dashboard() {
     setHeaders_CrossOrigin();
     server.send(200, "text/html", msg);
   }
+}
+
+
+/**
+   ROUTE - "/led/relay-one-on"
+   @param void
+   @return void
+*/
+void handleRoute_relay_on() {
+  //if (checkCookieAuthed()) {
+
+    // Turn on
+    digitalWrite(relayOnePin, HIGH);
+
+    // Send content to client
+    char msg[255];
+    strcpy(msg, "<html><head><title>ON</title></head><body>ON!</body></html>");
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  //}
+}
+
+
+/**
+   ROUTE - "/led/relay-one-on"
+   @param void
+   @return void
+*/
+void handleRoute_relay_off() {
+  //if (checkCookieAuthed()) {
+
+    // Turn on
+    digitalWrite(relayOnePin, LOW);
+    
+    // Send content to client
+    char msg[255];
+    strcpy(msg, "<html><head><title>ON</title></head><body>OFF!</body></html>");
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  //}
 }
 
 
@@ -692,6 +753,125 @@ void handleRoute_newHostname_Save() {
 
 
 /**
+   ROUTE - "/system/set-mode"
+   @param void
+   @return void
+*/
+void handleRoute_newMode() {
+  if (checkCookieAuthed()) {
+    
+    char msg[2000];
+    strcpy(msg, "<html>");
+    strcat(msg, "  <head>");
+    strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <style type=\"text/css\">\r\n");
+    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "    </style>\r\n");
+    strcat(msg, "  </head>");
+    strcat(msg, "  <body>");
+    strcat(msg, "    <main>");
+    strcat(msg, "  <h1>Set Mode</h1>\r\n");
+    strcat(msg, "  <p>");
+    strcat(msg, "    <h3>Current Details</h3>'"); strcat(msg, MODE); strcat(msg, "'.");
+    strcat(msg, "  </p>");
+    strcat(msg, "  <p>");
+    strcat(msg, "    <form action=\"/system/set-mode/save\" method=\"POST\">");
+    strcat(msg, "      <h3>Select a mode:</h3>");
+    strcat(msg, "      <select name=\"mode\">");
+    strcat(msg, "        <option value=\"1\" default>LED Strip</option>");
+    strcat(msg, "        <option value=\"2\">LED Strips with MOSFET/RELAYS</option>");
+    strcat(msg, "        <option value=\"6\">Thermostat</option>");
+    strcat(msg, "        <option value=\"7\">Smart Plug</option>");
+    strcat(msg, "        <option value=\"8\">Home AP</option>");
+    strcat(msg, "        <option value=\"3\">BMP180 Sensor</option>");
+    strcat(msg, "        <option value=\"4\">BME280 Sensor</option>");
+    strcat(msg, "        <option value=\"5\">Weather Station</option>");
+    strcat(msg, "      </select>");
+    strcat(msg, "      <input type=\"submit\" value=\"Save!\"><br>");
+    strcat(msg, "    </form>");
+    strcat(msg, "  </p>");
+    strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/dashboard'>[x] Back</a><br>");
+    strcat(msg, "  </p>");
+    strcat(msg, "    </main>");
+    strcat(msg, "  </body>");
+    strcat(msg, "</html>");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  }
+}
+
+
+/**
+   ROUTE - "/system/set-mode/save"
+   @param void
+   @return void
+*/
+void handleRoute_newMode_Save() {
+  if (checkCookieAuthed()) {
+    
+    String inMODE = server.arg("mode");
+    char msgResponse[255];
+    
+    // Check if set then save
+    if (inMODE == "") {
+      strcat(msgResponse, "Details not saved because at least one of them was not provided.");
+    
+    // Save it
+    } else {
+  
+      // Covert to char array
+      char inMODEc[30];
+      strcpy(inMODEc, inMODE.c_str());
+  
+      // Set the hostname
+      setMode(inMODEc);
+      strcpy(msgResponse, "Saved.");
+    }
+    
+    char msg[2000];
+    strcpy(msg, "<html>");
+    strcat(msg, "  <head>");
+    strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "    <style type=\"text/css\">\r\n");
+    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "    </style>\r\n");
+    strcat(msg, "  </head>");
+    strcat(msg, "  <body>");
+    strcat(msg, "    <main>");
+    strcat(msg, "  <h1>Set Hostname</h1>\r\n");
+    strcat(msg, "  <p>");
+    strcat(msg, "    "); strcat(msg, msgResponse);
+    strcat(msg, "  </p>");
+    strcat(msg, "  <p>");
+    strcat(msg, "    <a href='/dashboard'>[x] Back</a><br>");
+    strcat(msg, "  </p>");
+    strcat(msg, "    </main>");
+    strcat(msg, "  </body>");
+    strcat(msg, "</html>");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  }
+}
+
+
+/**
    ROUTE - "/system/wipe-eeprom"
    @param void
    @return void
@@ -952,6 +1132,37 @@ bool getHostname () {
 
 
 /**
+ * Gets the MODE from the EEPROM
+ * @param void
+ * @return void
+ */
+bool getMode () {
+  int isModeSet = EEPROM.read(EEPROM_MODE_ISSET_LOCATION);
+  int digit;
+  
+  // If the ISSET flag is set == 1 in the EEPROM then
+  if (isModeSet == 1) {
+
+    // Read out the HOSTNAME from the EEPROM
+    for (int i=EEPROM_MODE_LOCATION; digit != 0; i++) {
+
+      // Read EEPROM value
+      digit = EEPROM.read(i);
+      
+      // If digit is 0 then skip (0 is end of string)
+      if (digit == 0)
+        continue;
+      
+      MODE[i-EEPROM_MODE_LOCATION] = eepromNumberToChar(digit); // Decode the digit to the Char it represents
+    }
+    return true;
+  }
+  // Else use default name
+  return false;
+}
+
+
+/**
  * Sets the SSID Credentials in the EEPROM
  * @param void
  * @return void
@@ -1010,6 +1221,35 @@ bool setHostname (char tmpHOSTNAME[30]) {
   
   // Save the ISSET fields in EEPROM
   EEPROM.write(EEPROM_HOSTNAME_ISSET_LOCATION, 1);
+  
+  // Commit EEPROM Save!
+  EEPROM.commit();
+  return true;
+}
+
+
+/**
+ * Sets the HOSTNAME in the EEPROM
+ * @param void
+ * @return void
+ */
+bool setMode (char tmpMODE[30]) {
+  Serial.println("> SAVING HOSTNAME...");
+  
+  // WIPE AL SAVED DATA FROM FIELDS in EPPROM
+  for (int i=0; i<30; i++) {
+    EEPROM.write(EEPROM_MODE_LOCATION+i, 0);
+  }
+  EEPROM.write(EEPROM_MODE_ISSET_LOCATION, 0);
+  EEPROM.commit();
+    
+  // Set hostname
+  for (int i=0; tmpMODE[i] != '\0'; i++) {
+    EEPROM.write(EEPROM_MODE_LOCATION+i, eepromCharToNumber(tmpMODE[i]));      // Set the digit in the EEPROM
+  }
+  
+  // Save the ISSET fields in EEPROM
+  EEPROM.write(EEPROM_MODE_ISSET_LOCATION, 1);
   
   // Commit EEPROM Save!
   EEPROM.commit();
@@ -1087,7 +1327,7 @@ float readSensor (String sensor) {
         if (r > -20 && r < 40)
           break;
   
-        // PRESSURE SENSOR
+      // PRESSURE SENSOR
       } else if (sensor == "pressure") {
         r = bmp.readPressure();
         if (r > 850 && r < 120000)

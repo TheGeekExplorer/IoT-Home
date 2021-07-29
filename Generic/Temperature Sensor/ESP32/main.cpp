@@ -4,8 +4,13 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <EEPROM.h>
-#include <Adafruit_BMP085.h>
 #include "mbedtls/md.h"
+#include "DHT.h"
+#include <Adafruit_BMP085.h>
+
+#define DHTPIN1 3
+#define DHTPIN2 23
+#define DHTTYPE DHT11   // DHT 11
 
 // API Config
 char APIUSER[20]  = "x-smart";
@@ -36,6 +41,8 @@ int relayOnePin = 26;
 // Instantiate Objects / Devices
 WebServer server(80);
 Adafruit_BMP085 bmp;
+DHT dhtA(DHTPIN1, DHTTYPE);
+DHT dhtB(DHTPIN2, DHTTYPE);
 
 
 /**
@@ -80,7 +87,7 @@ void setup() {
   
   // Else connect to WIFI and run!
   } else {
-
+    
     Serial.println("> Booting...");
     
     // WIFI - Setup wifi
@@ -102,7 +109,7 @@ void setup() {
       Serial.print('.');
       delay(100);
     }
-  
+
     // WIFI - Display connection details
     Serial.println("Connected.");
 
@@ -129,11 +136,11 @@ void setup() {
   server.on("/system/set-hostname/save",   HTTP_POST, handleRoute_newHostname_Save);
   server.on("/api/identity.json",          HTTP_GET,  handleRoute_identity);
   server.on("/api/temperature.json",       HTTP_GET,  handleRoute_temperature);
-  server.on("/api/pressure.json",          HTTP_GET,  handleRoute_pressure);
   server.on("/weather/temperature",        HTTP_GET,  handleRoute_temperatureHTML);
+  server.on("/api/pressure.json",          HTTP_GET,  handleRoute_pressure);
   server.on("/weather/pressure",           HTTP_GET,  handleRoute_pressureHTML);
-  server.on("/leds/relay-on",              HTTP_GET,  handleRoute_relay_on);
-  server.on("/leds/relay-off",             HTTP_GET,  handleRoute_relay_off);
+  server.on("/api/humidity.json",          HTTP_GET,  handleRoute_humidity);
+  server.on("/weather/humidity",           HTTP_GET,  handleRoute_humidityHTML);
   
   // WEB SERVER - Define which request headers you need access to
   const char *headers[] = {"Host", "Referer", "Cookie"};
@@ -145,16 +152,19 @@ void setup() {
   Serial.println("> API Server Started.");
   delay(1000);
   
-  // BMP180 - Test component
-  //if (!bmp.begin()) {
-  //  Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
-  //  Serial.println(">> Hanging.");
+  // BMP180
+  Wire.begin(17,18); //new SDA SCL pins (D6 and D4 for esp8266)
+  delay(100);
+  
+  if (!bmp.begin(0x76, &Wire)) {
+    Serial.println("> ERROR - Could not find a valid BMP085/BMP180 sensor, check wiring!");
+    Serial.println(">> Hanging.");
   //  while (1) {}
-  //}
+  }
 
-  // Setup RELAY
-  pinMode(relayOnePin, OUTPUT);
-  digitalWrite(relayOnePin, LOW);
+  // DHT11
+  dhtA.begin();
+  dhtB.begin();
   
   // Completed boot
   Serial.println("> Boot Completed. Waiting for HTTP Requests.");
@@ -240,16 +250,18 @@ void handleRoute_dashboard() {
     strcat(msg, "  <h1>DASHBOARD<h1>");
     strcat(msg, "  <h3>Webapp Pages<h3>");
     strcat(msg, "  <p>");
-    strcat(msg, "    <a href='/leds/relay-on'>LEDS ON</a> / <a href='/leds/relay-off'>OFF</a><br>");
+    strcat(msg, "    <!-- <a href='/leds/relay-on'>LEDS ON</a> / <a href='/leds/relay-off'>OFF</a><br> -->");
     strcat(msg, "    <a href='/weather/light'>Light</a><br>");
     strcat(msg, "    <a href='/weather/temperature'>Temperature</a><br>");
     strcat(msg, "    <a href='/weather/pressure'>Pressure</a><br>");
+    strcat(msg, "    <a href='/weather/humidity'>Humidity</a><br>");
     strcat(msg, "  </p>");
     strcat(msg, "  <h3>API Endpoints<h3>");
     strcat(msg, "  <p>");
     strcat(msg, "    <a href='/api/light.json'>/api/light.json</a><br>");
     strcat(msg, "    <a href='/api/temperature.json'>/api/temperature.json</a><br>");
     strcat(msg, "    <a href='/api/pressure.json'>/api/pressure.json</a><br>");
+    strcat(msg, "    <a href='/api/humidity.json'>/api/humidity.json</a><br>");
     strcat(msg, "  </p>");
     strcat(msg, "  <h3>System<h3>");
     strcat(msg, "  <p>");
@@ -274,49 +286,7 @@ void handleRoute_dashboard() {
 
 
 /**
-   ROUTE - "/led/relay-one-on"
-   @param void
-   @return void
-*/
-void handleRoute_relay_on() {
-  //if (checkCookieAuthed()) {
-
-    // Turn on
-    digitalWrite(relayOnePin, HIGH);
-
-    // Send content to client
-    char msg[255];
-    strcpy(msg, "<html><head><title>ON</title></head><body>ON!</body></html>");
-    setHeaders_NoCache();
-    setHeaders_CrossOrigin();
-    server.send(200, "text/html", msg);
-  //}
-}
-
-
-/**
-   ROUTE - "/led/relay-one-on"
-   @param void
-   @return void
-*/
-void handleRoute_relay_off() {
-  //if (checkCookieAuthed()) {
-
-    // Turn on
-    digitalWrite(relayOnePin, LOW);
-    
-    // Send content to client
-    char msg[255];
-    strcpy(msg, "<html><head><title>ON</title></head><body>OFF!</body></html>");
-    setHeaders_NoCache();
-    setHeaders_CrossOrigin();
-    server.send(200, "text/html", msg);
-  //}
-}
-
-
-/**
-   ROUTE - "/api/temperature.json"
+   ROUTE - "/api/temperature1.json"
    @param void
    @return void
 */
@@ -324,19 +294,34 @@ void handleRoute_temperature() {
   if (checkCookieAuthed()) {
   
     // Define variables
-    float r = 0.00;
-    char r1[10];
+    float r1 = 0.00;
+    float r2 = 0.00;
+    float r3 = 0.00;
+    float r4 = 0.00;
+    char rr1[10], rr2[10], rr3[10], rr4[10];
     char msg[255];
-  
+    
     // Read sensor
-    r = readSensor("temperature");  // Read sensor
-    r = roundf(r * 100) / 100;      // Round to 2 decimal places
-    sprintf (r1, "%f", r);          // Convert to Char Array
+    r1 = readSensor("temperature1");  // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    r2 = readSensor("temperature2");  // Read sensor
+    r2 = roundf(r2 * 100) / 100;      // Round to 2 decimal places
+    r3 = readSensor("temperature2");  // Read sensor
+    r3 = roundf(r3 * 100) / 100;      // Round to 2 decimal places
+    r4 = getAvg(r1, r2, r3);
+    r4 = roundf(r4 * 100) / 100;      // Round to 2 decimal places
   
-    // Build content
-    strcpy(msg, "{result:{\"ROUTE\":\"temperature\",\"status\":\"OK\", \"value\":\"");
-    strcat(msg, r1);
-    strcat(msg, "\"}}");
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
+    sprintf (rr2, "%f", r2);          // Convert to Char Array
+    sprintf (rr3, "%f", r3);          // Convert to Char Array
+    sprintf (rr4, "%f", r4);          // Convert to Char Array
+    
+    strcpy(msg, "{result:{\"ROUTE\":\"temperature\",\"status\":\"OK\", ");
+    strcat(msg, "\"t1\":\"");  strcat(msg, rr1); strcat(msg, "\",");
+    strcat(msg, "\"t2\":\"");  strcat(msg, rr2); strcat(msg, "\",");
+    strcat(msg, "\"t3\":\"");  strcat(msg, rr3); strcat(msg, "\",");
+    strcat(msg, "\"avg\":\""); strcat(msg, rr4); strcat(msg, "\",");
+    strcat(msg, "}}");
   
     // Send content to client
     setHeaders_NoCache();
@@ -347,7 +332,7 @@ void handleRoute_temperature() {
 
 
 /**
-   ROUTE - "/weather/temperature"
+   ROUTE - "/weather/temperature1"
    @param void
    @return void
 */
@@ -355,29 +340,39 @@ void handleRoute_temperatureHTML() {
   if (checkCookieAuthed()) {
   
     // Define variables
-    float r = 0.00;
-    char r1[10];
-  
+    float r1 = 0.00;
+    float r2 = 0.00;
+    float r3 = 0.00;
+    float r4 = 0.00;
+    char rr1[10], rr2[10], rr3[10], rr4[10];
+    
     // Read sensor
-    r = readSensor("temperature");  // Read sensor
-    r = roundf(r * 100) / 100;      // Round to 2 decimal places
-    sprintf (r1, "%f", r);          // Convert to Char Array
+    r1 = readSensor("temperature1");  // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    r2 = readSensor("temperature2");  // Read sensor
+    r2 = roundf(r2 * 100) / 100;      // Round to 2 decimal places
+    r3 = readSensor("temperature2");  // Read sensor
+    r3 = roundf(r3 * 100) / 100;      // Round to 2 decimal places
+    r4 = getAvg(r1, r2, r3);
+    r4 = roundf(r4 * 100) / 100;      // Round to 2 decimal places
+  
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
+    sprintf (rr2, "%f", r2);          // Convert to Char Array
+    sprintf (rr3, "%f", r3);          // Convert to Char Array
+    sprintf (rr4, "%f", r4);          // Convert to Char Array
   
     // Else, build content for page
     char msg[2000];
-    strcpy(msg, "<html>");
-    strcat(msg, "  <head>");
-    strcat(msg, "    <title>");  strcat(msg, HOSTNAME); strcat(msg, " - ESP32 SENSOR</title>\r\n");
-    strcat(msg, "    <style type=\"text/css\">\r\n");
-    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
-    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
-    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
-    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
-    strcat(msg, "    </style>\r\n");
-    strcat(msg, "  </head>");
-    strcat(msg, "  <body>");
+    strcpy(msg, "<html><head><title>");  strcat(msg, HOSTNAME); strcat(msg, " - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "  <style type=\"text/css\">\r\n");
+    strcat(msg, "    body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "    main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "    h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "    p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "    a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "    input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "  </style>\r\n");
+    strcat(msg, "  </head><body>");
     strcat(msg, "    <main>");
     strcat(msg, "      <h1>Temperature</h1>\r\n");
     strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
@@ -385,7 +380,10 @@ void handleRoute_temperatureHTML() {
     strcat(msg, "            <h3>&laquo;ICON&raquo;</h3>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
-    strcat(msg, "            <h3>"); strcat(msg, r1); strcat(msg, " C</h3>\r\n");
+    strcat(msg, "            <h3>T1:  "); strcat(msg, rr1); strcat(msg, " C</h3>\r\n");
+    strcat(msg, "            <h3>T2:  "); strcat(msg, rr2); strcat(msg, " C</h3>\r\n");
+    strcat(msg, "            <h3>T3:  "); strcat(msg, rr3); strcat(msg, " C</h3>\r\n");
+    strcat(msg, "            <h3>AVG: "); strcat(msg, rr4); strcat(msg, " C</h3>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "      </div>\r\n");
     strcat(msg, "      <p>");
@@ -404,7 +402,7 @@ void handleRoute_temperatureHTML() {
 
 
 /**
-   ROUTE - "/api/pressure.json"
+   ROUTE - "/api/temperature1.json"
    @param void
    @return void
 */
@@ -412,19 +410,18 @@ void handleRoute_pressure() {
   if (checkCookieAuthed()) {
   
     // Define variables
-    float r = 0.00;
-    char r1[10];
+    float r1 = 0.00;
+    char rr1[10];
     char msg[255];
-  
+    
     // Read sensor
-    r = readSensor("pressure");  // Read sensor
-    r = roundf(r * 100) / 100;      // Round to 2 decimal places
-    sprintf (r1, "%f", r);          // Convert to Char Array
-  
-    // Build content
-    strcpy(msg, "{result:{\"ROUTE\":\"pressure\",\"status\":\"OK\", \"value\":\"");
-    strcat(msg, r1);
-    strcat(msg, "\"}}");
+    r1 = readSensor("pressure");  // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
+    
+    strcpy(msg, "{result:{\"ROUTE\":\"pressure\",\"status\":\"OK\", ");
+    strcat(msg, "\"p1\":\"");  strcat(msg, rr1); strcat(msg, "\",");
+    strcat(msg, "}}");
   
     // Send content to client
     setHeaders_NoCache();
@@ -435,7 +432,7 @@ void handleRoute_pressure() {
 
 
 /**
-   ROUTE - "/weather/pressure"
+   ROUTE - "/weather/temperature1"
    @param void
    @return void
 */
@@ -443,37 +440,130 @@ void handleRoute_pressureHTML() {
   if (checkCookieAuthed()) {
   
     // Define variables
-    float r = 0.00;
-    char r1[10];
-  
+    float r1 = 0.00;
+    char rr1[10];
+    
     // Read sensor
-    r = readSensor("pressure");  // Read sensor
-    r = roundf(r * 100) / 100;   // Round to 2 decimal places
-    sprintf (r1, "%f", r);       // Convert to Char Array
+    r1 = readSensor("pressure");      // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
   
     // Else, build content for page
     char msg[2000];
-    strcpy(msg, "<html>");
-    strcat(msg, "  <head>");
-    strcat(msg, "    <title>");  strcat(msg, HOSTNAME);  strcat(msg, " - ESP32 SENSOR</title>\r\n");
-    strcat(msg, "    <style type=\"text/css\">\r\n");
-    strcat(msg, "      body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
-    strcat(msg, "      main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
-    strcat(msg, "      h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
-    strcat(msg, "      p     { font-size:16px; font-weight:normal; }\r\n");
-    strcat(msg, "      a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
-    strcat(msg, "      input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
-    strcat(msg, "    </style>\r\n");
-    strcat(msg, "  </head>");
-    strcat(msg, "  <body>");
+    strcpy(msg, "<html><head><title>");  strcat(msg, HOSTNAME); strcat(msg, " - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "  <style type=\"text/css\">\r\n");
+    strcat(msg, "    body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "    main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "    h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "    p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "    a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "    input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "  </style>\r\n");
+    strcat(msg, "  </head><body>");
     strcat(msg, "    <main>");
-    strcat(msg, "      <h1>Air Pressure</h1>\r\n");
+    strcat(msg, "      <h1>Pressure</h1>\r\n");
     strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
     strcat(msg, "            <h3>&laquo;ICON&raquo;</h3>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
-    strcat(msg, "            <h3>"); strcat(msg, r1); strcat(msg, " PA</h3>\r\n");
+    strcat(msg, "            <h3>P1: "); strcat(msg, rr1); strcat(msg, " mb</h3>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "      </div>\r\n");
+    strcat(msg, "      <p>");
+    strcat(msg, "        <a href='/dashboard'>[x] Back</a><br>");
+    strcat(msg, "      </p>");
+    strcat(msg, "    </main>");
+    strcat(msg, "  </body>");
+    strcat(msg, "</html>");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "text/html", msg);
+  }
+}
+
+
+/**
+   ROUTE - "/api/humidity.json"
+   @param void
+   @return void
+*/
+void handleRoute_humidity() {
+  if (checkCookieAuthed()) {
+  
+    // Define variables
+    float r1 = 0.00;
+    float r2 = 0.00;
+    char rr1[10], rr2[10];
+    char msg[255];
+    
+    // Read sensor
+    r1 = readSensor("humidity1");     // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    r2 = readSensor("humidity2");     // Read sensor
+    r2 = roundf(r2 * 100) / 100;      // Round to 2 decimal places
+  
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
+    sprintf (rr2, "%f", r2);          // Convert to Char Array
+    
+    strcpy(msg, "{result:{\"ROUTE\":\"humidity\",\"status\":\"OK\", ");
+    strcat(msg, "\"h1\":\"");  strcat(msg, rr1); strcat(msg, "\",");
+    strcat(msg, "\"h2\":\"");  strcat(msg, rr2); strcat(msg, "\",");
+    strcat(msg, "}}");
+  
+    // Send content to client
+    setHeaders_NoCache();
+    setHeaders_CrossOrigin();
+    server.send(200, "application/json", msg);
+  }
+}
+
+
+/**
+   ROUTE - "/weather/humidity"
+   @param void
+   @return void
+*/
+void handleRoute_humidityHTML() {
+  if (checkCookieAuthed()) {
+  
+    // Define variables
+    float r1 = 0.00;
+    float r2 = 0.00;
+    char rr1[10], rr2[10];
+    
+    // Read sensor
+    r1 = readSensor("humidity1");  // Read sensor
+    r1 = roundf(r1 * 100) / 100;      // Round to 2 decimal places
+    r2 = readSensor("humidity2");  // Read sensor
+    r2 = roundf(r2 * 100) / 100;      // Round to 2 decimal places
+  
+    sprintf (rr1, "%f", r1);          // Convert to Char Array
+    sprintf (rr2, "%f", r2);          // Convert to Char Array
+  
+    // Else, build content for page
+    char msg[2000];
+    strcpy(msg, "<html><head><title>");  strcat(msg, HOSTNAME); strcat(msg, " - ESP32 SENSOR</title>\r\n");
+    strcat(msg, "  <style type=\"text/css\">\r\n");
+    strcat(msg, "    body  { background-color:#555; font-size:16px; color:#444; font-family: Sans-Serif; box-sizing: border-box; }\r\n");
+    strcat(msg, "    main  { margin:5% auto; width:100%; max-width:360px; padding:30px 40px; background-color:#eee; border-radius:10px; box-shadow:0 0 20px #222; }\r\n");
+    strcat(msg, "    h1    { font-size:24px; font-weight:bold; color:#D52E84; }\r\n");
+    strcat(msg, "    p     { font-size:16px; font-weight:normal; }\r\n");
+    strcat(msg, "    a     { color:#D52E84; } a:visited { color:#D52E84; }\r\n");
+    strcat(msg, "    input { border:2px solid #bbb; color:#444; border-radius:5px; padding:5px; }\r\n");
+    strcat(msg, "  </style>\r\n");
+    strcat(msg, "  </head><body>");
+    strcat(msg, "    <main>");
+    strcat(msg, "      <h1>Humidity</h1>\r\n");
+    strcat(msg, "      <div style='width:100%; height:200px; clear:both;'>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h3>&laquo;ICON&raquo;</h3>\r\n");
+    strcat(msg, "        </div>\r\n");
+    strcat(msg, "        <div style='width:49%; float:left;'>\r\n");
+    strcat(msg, "            <h3>H1:  "); strcat(msg, rr1); strcat(msg, " C</h3>\r\n");
+    strcat(msg, "            <h3>H2:  "); strcat(msg, rr2); strcat(msg, " C</h3>\r\n");
     strcat(msg, "        </div>\r\n");
     strcat(msg, "      </div>\r\n");
     strcat(msg, "      <p>");
@@ -1307,6 +1397,18 @@ char eepromNumberToChar (int number) {
 }
 
 
+/** 
+ * Avg Float Value from Two Given
+ * @param float d1
+ * @param float d2
+ * @param float d3
+ * @return float
+ */
+float getAvg (float d1, float d2, float d3) {
+  return ((d1+d2+d3) / 3);
+}
+
+
 /**
    Reas the sensor and return the value
    @param String sensor
@@ -1322,7 +1424,7 @@ float readSensor (String sensor) {
     for (int i = 0; i < 40; i++) {
   
       // TEMPERATURE SENSOR
-      if (sensor == "temperature") {
+      if (sensor == "temperature1") {
         r = bmp.readTemperature();
         if (r > -20 && r < 40)
           break;
@@ -1332,7 +1434,28 @@ float readSensor (String sensor) {
         r = bmp.readPressure();
         if (r > 850 && r < 120000)
           break;
+
+      // DHT11-1 - HUMIDITY
+      } else if (sensor == "humidity1") {
+        r = dhtA.readHumidity();
+        break;
+
+      // DHT11-1 - TEMPERATURE
+      } else if (sensor == "temperature2") {
+        r = dhtA.readTemperature();
+        break;
+
+      // DHT11-2 - HUMIDITY
+      } else if (sensor == "humidity2") {
+        r = dhtB.readHumidity();
+        break;
+
+      // DHT11-2 - TEMPERATURE
+      } else if (sensor == "temperature3") {
+        r = dhtB.readTemperature();
+        break;
       }
+      
       delay(50);
     }
     return r;
